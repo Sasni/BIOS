@@ -2,48 +2,72 @@
 
 ## Overview
 
-This toolkit enables building an open-source database of BIOS structures, regions, and repair patterns. It consists of:
+BIOS Analysis Toolkit — open-source tools for analyzing, identifying, and repairing BIOS/UEFI firmware dumps.
 
-- **parse_bios.py** - Analyzes BIOS dumps, extracts regions, metadata
-- **diff_bios.py** - Compares before/after repair dumps to find exact changes
-- **batch_process.py** - Processes multiple BIOS dumps into a model database
-- **identify_bios.py** - Identifies unknown BIOS dumps against known models
+- **Web GUI** (`app.py`) — drag & drop .bin files, hex viewer, analysis, diff, NVRAM reset
+- **CLI** (`bioskit.py`) — unified command-line entry point for all tools
+- **10 tools** — parse, diff, identify, batch, AMI extract, FIT parser, NVRAM reset, patches
+- **2 NVRAM formats** — AMI Aptio V (NVAR) + Insyde H2O (VSS)
 
 ## Quick Start
 
 ```bash
-# 1. Analyze a single BIOS dump
-python tools/parse_bios.py path/to/bios.bin
+# CLI entry point
+python bioskit.py parse bios.bin
+python bioskit.py diff original.bin repaired.bin
+python bioskit.py nvram corrupted.bin -o repaired.bin
 
-# 2. Compare before/after repair
-python tools/diff_bios.py original.bin repaired.bin
-
-# 3. Batch process a directory of BIOS dumps
-python tools/batch_process.py path/to/bios_dumps/
-
-# 4. Identify an unknown BIOS
-python tools/identify_bios.py unknown.bin --analyze-first
+# Or use the Web GUI
+python app.py
+# → http://localhost:5000 — drag & drop .bin files
 ```
+
+### Tools
+
+| Tool | Description |
+|------|-------------|
+| `parse_bios` | Analyze BIOS dump: regions, SMBIOS, UEFI volumes, FIT, AMI modules, NVRAM |
+| `diff_bios` | Compare before/after repair BIOS dumps |
+| `batch_process` | Batch process directory of BIOS dumps into model database |
+| `identify_bios` | Identify unknown BIOS dump against known models |
+| `db_manager` | Database management (list, stats, export, dedup) |
+| `fit_parser` | Parse Intel Firmware Interface Table (FIT) |
+| `bios_finder` | Search BIOS setup variables from IFR text |
+| `ami_parser` | Extract modules from AMI BIOS (AMIBIOSC format, LH5 decompression) |
+| `reset_nvram` | Reset corrupted NVRAM to factory defaults (AMI NVAR + Insyde VSS) |
+| `me_clean_patch` | Apply ME region clean patch |
 
 ## Directory Structure
 
 ```
 workspace/
+├── app.py                    # Flask Web GUI
+├── bioskit.py                # CLI entry point
+├── requirements.txt
 ├── data/
-│   ├── raw/           # Original .bin files (gitignored)
-│   ├── parsed/        # Analysis JSON outputs
-│   └── models/        # bios_models.json - the knowledge base
+│   ├── raw/                  # .bin files (gitignored)
+│   ├── parsed/               # Analysis JSON (gitignored)
+│   └── models/               # bios_models.json — the knowledge base
 ├── tools/
-│   ├── parse_bios.py      # Main analyzer
-│   ├── diff_bios.py       # Before/after diff
-│   ├── batch_process.py   # Batch processor
-│   └── identify_bios.py   # Model identification
-├── docs/
-│   ├── region-map.md      # Known region layouts per vendor
-│   ├── unlock-methods.md  # Documented unlock/repair methods
-│   └── spi-chips.md       # SPI flash chip database
-└── scripts/
-    └── (utility scripts)
+│   ├── parse_bios.py         # Main analyzer: regions, SMBIOS, UEFI, FIT, AMI, NVRAM
+│   ├── diff_bios.py          # Before/after repair comparison
+│   ├── batch_process.py      # Batch processor → model database
+│   ├── identify_bios.py      # Identify unknown BIOS against model DB
+│   ├── db_manager.py         # Database management (list, stats, export)
+│   ├── fit_parser.py         # Intel FIT: microcode, ACM, Boot Guard
+│   ├── bios_finder.py        # Search BIOS setup variables from IFR
+│   ├── ami_parser.py         # AMI BIOS module extractor (LH5 decompression)
+│   ├── reset_nvram.py        # NVRAM reset: AMI NVAR + Insyde VSS
+│   └── patches/              # Documented repair patches
+├── static/
+│   ├── css/style.css
+│   └── js/bios-ui.js         # Vanilla JS frontend
+├── templates/
+│   └── index.html
+└── docs/
+    ├── region-map.md
+    ├── unlock-methods.md
+    └── spi-chips.md
 ```
 
 ## Data Flow
@@ -54,30 +78,26 @@ BIOS .bin files
        ▼
 ┌──────────────────┐
 │  parse_bios.py   │  →  data/parsed/*.analysis.json
-│  (extract regions,          (FFS volumes, ME, GbE, NVRAM,
-│   metadata, SMBIOS)         SMBIOS, strings, metadata)
+│  (regions, UEFI,       (vendor, model, board, SMBIOS,
+│   SMBIOS, FIT,          regions, NVRAM, AMI modules)
+│   NVRAM, strings)  │
 └──────────────────┘
        │
-       ▼
-┌──────────────────┐
-│  batch_process.py│  →  data/models/bios_models.json
-│  (aggregate into              (ModelEntry: vendor, model,
-│   model database)             version, regions, hashes)
-└──────────────────┘
+       ├──────────────────────────┐
+       ▼                          ▼
+┌──────────────────┐    ┌──────────────────┐
+│  batch_process   │    │  reset_nvram.py  │
+│  → models DB     │    │  → repaired .bin │
+└──────────────────┘    └──────────────────┘
        │
        ▼
-┌──────────────────┐
-│  diff_bios.py    │  →  data/parsed/*.diff.json
-│  (before/after   │     (Exact byte changes,
-│   comparison)    │      patch scripts)
-└──────────────────┘
-       │
-       ▼
-┌──────────────────┐
-│  identify_bios.py│  →  Match unknown dumps
-│  (lookup against │     to known models
-│   database)      │
-└──────────────────┘
+┌──────────────────┐    ┌──────────────────┐
+│  diff_bios.py    │    │  ami_parser.py   │
+│  before/after    │    │  AMI module      │
+│  → diff.json     │    │  extraction      │
+└──────────────────┘    └──────────────────┘
+
+Web GUI (app.py): drag & drop → Info → Hex → Diff → Fix
 ```
 
 ## Model Database Schema (bios_models.json)
@@ -135,33 +155,34 @@ When you have before/after pairs:
 **Patch Script:** `tools/patches/t14g3_kbc_unlock.py`
 ```
 
+## Supported Formats
+
+| Format | Vendor | Detection |
+|--------|--------|-----------|
+| NVAR | AMI Aptio V | `NVAR` signature, per-variable parsing |
+| VSS | Insyde H2O | `$VSS` signature, store-based clearing |
+| AMIBIOSC | AMI (legacy) | Module extraction with LH5 decompression |
+| Intel FIT | Intel | Firmware Interface Table (microcode, ACM, Boot Guard) |
+| Intel IFD | Intel | Flash Descriptor (ME, BIOS, GbE regions) |
+
 ## Extending the Tools
 
-### Adding New Region Detectors
+### Adding a New Vendor Detector
 
-Edit `parse_bios.py`, add to `detect_*_region()` functions:
-
-```python
-def detect_custom_region(data: bytes) -> Optional[Dict]:
-    positions = find_all(data, b'CUSTOM_SIG')
-    return {"detected": len(positions) > 0, "positions": positions}
-```
-
-Then register in `analyze_bios()`.
-
-### Adding UEFI Module Parsing
-
-For deeper UEFI analysis, integrate `uefi-firmware-parser`:
-
-```bash
-pip install uefi-firmware-parser
-```
+Edit `extract_smbios_info()` in `parse_bios.py`, add to `vendor_patterns`:
 
 ```python
-from uefi_firmware import AutoParser
-parser = AutoParser(data)
-for module in parser.firmware.modules:
-    print(module.name, module.guid, module.size)
+(r'NewVendor\s+BIOS', 'NEWVENDOR', 90),  # regex, name, confidence score
+```
+
+### Adding a New NVRAM Format
+
+Add detection in `reset_nvram.py` following the pattern of `parse_vss_stores()`:
+
+```python
+def parse_xyz_stores(data: bytes) -> List[VSSStore]:
+    """Find XYZ variable stores."""
+    # Find signature, parse header, return store list
 ```
 
 ## Contributing
