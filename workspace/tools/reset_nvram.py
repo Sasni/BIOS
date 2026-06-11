@@ -42,14 +42,23 @@ VSS_SIGNATURES = (b'$VSS', b'VSS2', b'$VSS2')
 
 @dataclass
 class NVRAMVariable:
-    """A single UEFI variable found in the NVRAM region."""
-    offset: int             # offset of "NVAR" signature
-    name: str               # variable name (e.g., "StdDefaults", "SecureBootSetup")
-    guid: bytes             # 16-byte GUID identifying the variable store
-    header_size: int        # total header bytes (sig + name + null + GUID + attrs)
+    """A single UEFI variable found in the NVRAM region.
+
+    AMI Aptio V NVAR entry structure:
+      +0  Signature  (4)  \"NVAR\"
+      +4  TotalSize  (2)  u16 LE — full entry size (header + data)
+      +6  State      (3)  0xFFFFFF = active/valid
+      +9  StoreType  (2)  u16 LE — variable store identifier
+      +11 Name       (var) null-terminated ASCII
+      ??  Data       (var) to end of entry (TotalSize from +4)
+    """
+    offset: int             # offset of \"NVAR\" signature
+    name: str               # variable name
+    total_size: int         # from header field +4
+    state: int              # 0xFFFFFF = active, 0 = deleted
+    store_type: int         # store identifier
     data_offset: int        # where variable DATA begins
-    data_size: int          # size of variable data (estimated)
-    total_size: int         # total bytes this variable occupies
+    data_size: int          # size of variable data
 
 
 def _read_cstring(data: bytes, start: int) -> Tuple[str, int, bytes]:
@@ -83,14 +92,18 @@ def parse_nvram_variables(data: bytes) -> Tuple[List[NVRAMVariable], int, int]:
         region_start/end are the bounds of the NVRAM area.
         Returns empty list if no NVAR region found.
     """
-    # Find all NVAR positions
-    positions = [p for p in range(len(data))
-                 if data[p:p + 4] == NVAR_SIGNATURE]
+    # Find all NVAR positions using fast C-level search
+    positions = []
+    pos = data.find(NVAR_SIGNATURE)
+    while pos != -1:
+        positions.append(pos)
+        pos = data.find(NVAR_SIGNATURE, pos + 1)
 
     if not positions:
         return [], 0, 0
 
-    # Cluster nearby positions to find the main NVRAM region
+    # Cluster nearby positions to find NVRAM regions (primary + optional backup).
+    # AMI often keeps two copies — both must be reset.
     sorted_pos = sorted(positions)
     clusters = [[sorted_pos[0]]]
     for p in sorted_pos[1:]:
@@ -98,100 +111,91 @@ def parse_nvram_variables(data: bytes) -> Tuple[List[NVRAMVariable], int, int]:
             clusters[-1].append(p)
         else:
             clusters.append([p])
-    main_cluster = max(clusters, key=len)
-    region_start = min(main_cluster)
-    region_end = max(p + 0x100 for p in main_cluster)  # generous end
 
-    # Parse each NVAR entry.
-    # AMI Aptio V variable format: NVAR + cookie + name(null-term) + GUID + attrs + data
-    # Rather than parsing GUID/attrs precisely (which varies), we locate the
-    # variable DATA by finding the next NVAR or FF fill boundary.
+    # Process all significant clusters (>= 3 NVAR entries).
+    # Skip tiny isolated references.
+    significant = [c for c in clusters if len(c) >= 3]
+    if not significant:
+        return [], 0, 0
+
+    region_start = min(c[0] for c in significant)
+    region_end = max(c[-1] + 0x100 for c in significant)
+
+    # Parse each NVAR entry using the actual header structure:
+    #   NVAR(4) + TotalSize:u16(2) + State:u24(3) + StoreType:u16(2) + name + data
     variables = []
-    for i, pos in enumerate(sorted(main_cluster)):
-        if pos + 8 > len(data):
-            continue
-
-        # Find the variable name: scan forward from pos+4 for a readable
-        # ASCII sequence. Binary metadata between sig and name varies
-        # (typically 7-11 bytes in AMI Aptio V).
-        name = "<binary>"
-        name_end = pos + 4
-        for scan_start in [pos + 4, pos + 7, pos + 8, pos + 11, pos + 12]:
-            if scan_start >= len(data):
+    for cluster_idx, cluster in enumerate(significant):
+        for pos in sorted(cluster):
+            if pos + 11 > len(data):
                 continue
-            trial_name, trial_end, trial_raw = _read_cstring(data, scan_start)
-            if _is_readable_name(trial_raw):
-                name = trial_name
-                name_end = trial_end
-                break
-        else:
-            name = f"var_0x{pos:04X}"
-            name_end = pos + 4
 
-        # GUID and attributes follow the name. GUID is 16 bytes.
-        # After the null terminator, skip null padding to GUID (16-byte aligned)
-        guid_start = (name_end + 15) & ~15  # align to 16
-        if guid_start + 20 > len(data):
-            guid_start = name_end
-        guid = data[guid_start:guid_start + 16] if guid_start + 16 <= len(data) else b'\x00' * 16
+            total_size = struct.unpack_from('<H', data, pos + 4)[0]
+            state = (data[pos + 6] << 16) | (data[pos + 7] << 8) | data[pos + 8]
+            store_type = struct.unpack_from('<H', data, pos + 9)[0]
 
-        # Variable DATA starts after GUID + attributes.
-        # Without precise format knowledge, estimate: data starts after
-        # a reasonable header size from the NVAR signature.
-        header_size = guid_start + 20 - pos  # sig + meta + name + GUID + attrs
-        data_offset = min(pos + header_size, name_end + 24)
+            # Name at +11, null-terminated
+            name, name_end, name_raw = _read_cstring(data, pos + 11)
+            if not _is_readable_name(name_raw):
+                name = f"var_0x{pos:04X}"
 
-        # Find data end: next NVAR or FF fill
-        next_nvar = None
-        for np in sorted_pos:
-            if np > pos:
-                next_nvar = np
-                break
-        if next_nvar:
-            data_end = next_nvar
-        else:
-            # Scan forward for 0xFF fill
-            scan = data_offset
-            while scan < min(len(data), data_offset + 0x10000):
-                if data[scan:scan + 16] == b'\xff' * 16:
-                    data_end = scan
-                    break
-                scan += 1
+            # Data starts right after the name's null terminator
+            data_offset = name_end
+
+            # TotalSize from header is the authoritative size to next entry.
+            # For the last variable in a cluster, TotalSize still gives the
+            # correct end — no FF-scan heuristic needed.
+            if total_size > 0 and pos + total_size <= len(data):
+                data_end = pos + total_size
             else:
-                data_end = min(data_offset + 0x1000, len(data))
+                # Only reached for corrupted entries with invalid TotalSize
+                data_end = data_offset
 
-        data_size = max(0, data_end - data_offset)
-        total_size = header_size + data_size
+            data_size = max(0, data_end - data_offset)
 
-        variables.append(NVRAMVariable(
-            offset=pos,
-            name=name,
-            guid=guid,
-            header_size=header_size,
-            data_offset=data_offset,
-            data_size=data_size,
-            total_size=total_size,
-        ))
+            prefix = f"[store{cluster_idx}] " if len(significant) > 1 else ""
+            variables.append(NVRAMVariable(
+                offset=pos,
+                name=prefix + name,
+                total_size=total_size,
+                state=state,
+                store_type=store_type,
+                data_offset=data_offset,
+                data_size=data_size,
+            ))
+
+    if len(significant) > 1:
+        print(f"[*] Found {len(significant)} NVRAM stores (primary + backup)")
 
     return variables, region_start, region_end
 
 
 def reset_variable_data(data: bytearray, variables: List[NVRAMVariable],
-                        keep: Optional[List[str]] = None) -> int:
+                        keep: Optional[List[str]] = None,
+                        target: Optional[List[str]] = None,
+                        state_filter: Optional[int] = None) -> int:
     """Fill variable DATA portions with 0xFF.
 
     Args:
         data: mutable bytearray of the BIOS dump.
         variables: parsed NVAR variables.
-        keep: if set, only clear variables NOT in this name list.
+        keep: if set, preserve variables in this name list.
+        target: if set, ONLY clear variables in this name list.
+        state_filter: if set, ONLY clear variables with this state
+                      (e.g. 0x000000 = deleted, 0xFFFFFF = active).
 
     Returns:
         Number of bytes cleared.
     """
     cleared = 0
     for v in variables:
+        # Apply filters
         if keep and v.name in keep:
             continue
+        if target and v.name not in target:
+            continue
+        if state_filter is not None and v.state != state_filter:
+            continue
+
         end = min(v.data_offset + v.data_size, len(data))
         if end <= v.data_offset:
             continue
@@ -302,16 +306,56 @@ class NVRAMRegion:
     size: int
 
 
+def _find_crc32_footer(data: bytes, region_start: int, region_end: int) -> Optional[Tuple[int, int]]:
+    """Try to locate a CRC32 footer in the NVRAM region.
+
+    Some AMI Aptio V implementations store a CRC32 at the end of the
+    NVRAM region. Returns (crc_offset, data_end_exclusive) or None.
+
+    Heuristic: scan the last 64 bytes for a 4-byte value that equals
+    CRC32 of the region data before it. Common layouts:
+      - CRC32 at region_end - 4, covering region_start..crc_offset
+      - CRC32 at region_end - 16 (inside a footer struct)
+    """
+    import binascii
+    tail_start = max(region_start, region_end - 1024)
+    for crc_off in range(region_end - 4, tail_start, -4):
+        data_region = data[region_start:crc_off]
+        if len(data_region) < 256:
+            continue
+        expected = binascii.crc32(data_region) & 0xFFFFFFFF
+        actual = struct.unpack_from('<I', data, crc_off)[0]
+        if expected == actual and actual != 0xFFFFFFFF:
+            return (crc_off, crc_off + 4)
+    return None
+
+
+def _update_nvram_crc32(data: bytearray, region_start: int, region_end: int) -> bool:
+    """Recalculate and update CRC32 footer if one is found."""
+    import binascii
+    footer = _find_crc32_footer(bytes(data), region_start, region_end)
+    if footer is None:
+        return False
+    crc_off, _ = footer
+    new_crc = binascii.crc32(data[region_start:crc_off]) & 0xFFFFFFFF
+    struct.pack_into('<I', data, crc_off, new_crc)
+    return True
+
+
 def reset_nvram(data: bytes, region: NVRAMRegion) -> bytes:
     """Backward-compatible wrapper — clear all variable data.
 
     Uses parse_nvram_variables internally for correct per-variable clearing.
+    Also updates CRC32 footer if present.
     """
     result = bytearray(data)
-    variables, _, _ = parse_nvram_variables(data)
+    variables, region_start, region_end = parse_nvram_variables(data)
     if variables:
         cleared = reset_variable_data(result, variables)
         print(f"[*] Cleared {cleared} bytes across {len(variables)} variables")
+        # Update CRC32 if present
+        if _update_nvram_crc32(result, region_start, region_end):
+            print("[*] CRC32 footer updated")
     else:
         # Fallback to old region-based clearing
         end = min(region.end, len(result))
@@ -379,6 +423,8 @@ Examples:
     parser.add_argument("-o", "--output", help="Output path (default: input_nvram_reset.bin)")
     parser.add_argument("--list", action="store_true", help="List NVAR variables without resetting")
     parser.add_argument("--keep", nargs="*", help="Variable names to preserve (others cleared)")
+    parser.add_argument("--target", nargs="*", help="Only clear specific variables (e.g. SecureBootSetup)")
+    parser.add_argument("--state", help="Only clear variables with given state (e.g. 0x000000 for deleted)")
     parser.add_argument("--force", action="store_true", help="Skip confirmation")
 
     args = parser.parse_args()
@@ -426,27 +472,49 @@ Examples:
 
     # List variables
     for i, v in enumerate(variables):
-        guid_str = v.guid.hex()[:8]
-        name_display = v.name[:30].ljust(30)
+        name_display = v.name[:35].ljust(35)
+        state_str = "active" if v.state == 0xFFFFFF else f"0x{v.state:06X}"
         print(f"  {i:3d}: 0x{v.offset:06X}  {name_display}"
-              f"  hdr={v.header_size:3d}  data={v.data_size:5d}  GUID={guid_str}...")
+              f"  size={v.total_size:4d}  data={v.data_size:5d}  {state_str}")
 
     if args.list:
         return
 
     # Confirm
     if not args.force:
-        keep_list = args.keep if args.keep else []
-        target = "ALL variables" if not keep_list else f"variables NOT in {keep_list}"
-        print(f"\n[?] Will clear variable DATA for: {target}")
-        print(f"    Variable headers (name + GUID) will be preserved.")
+        parts = []
+        if args.target:
+            parts.append(f"variables: {args.target}")
+        elif args.keep:
+            parts.append(f"all EXCEPT {args.keep}")
+        else:
+            parts.append("ALL variables")
+        if args.state:
+            try:
+                state_val = int(args.state, 16)
+                parts.append(f"with state=0x{state_val:06X}")
+            except ValueError:
+                pass
+        target_desc = " ".join(parts)
+        print(f"\n[?] Will clear variable DATA for: {target_desc}")
+        print(f"    Variable headers (name + state) will be preserved.")
         response = input("    Continue? [y/N]: ")
         if response.lower() not in ('y', 'yes', 't', 'tak'):
             print("[*] Aborted.")
             sys.exit(0)
 
+    # Parse state filter
+    state_filter = None
+    if args.state:
+        try:
+            state_filter = int(args.state, 16)
+        except ValueError:
+            print(f"[!] Invalid state value: {args.state}")
+            sys.exit(1)
+
     # Perform reset
-    cleared = reset_variable_data(data, variables, keep=args.keep)
+    cleared = reset_variable_data(data, variables, keep=args.keep,
+                                   target=args.target, state_filter=state_filter)
 
     # Write output
     output_path = Path(args.output) if args.output else input_path.with_stem(input_path.stem + "_nvram_reset")
