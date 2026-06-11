@@ -395,15 +395,29 @@ Examples:
     variables, region_start, region_end = parse_nvram_variables(data)
 
     if not variables:
-        # Check if it's a VSS-based BIOS
-        vss_found = any(data.find(sig) != -1 for sig in VSS_SIGNATURES)
-        if vss_found:
-            print("[!] No NVAR variables found, but VSS signature detected.")
-            print("    This appears to be an Insyde H2O (VSS) variable store.")
-            print("    VSS reset is not yet implemented.")
-        else:
-            print("[!] No NVRAM variable store found (neither NVAR nor VSS).")
-            print("    This BIOS may use a different variable format.")
+        # Check for VSS (Insyde H2O)
+        vss_stores = parse_vss_stores(data)
+        if vss_stores:
+            print(f"[*] VSS stores found: {len(vss_stores)}")
+            for s in vss_stores:
+                print(f"    0x{s.offset:06X}: {s.size/1024:.0f} KB")
+            if args.list:
+                return
+            if not args.force:
+                print(f"\n[?] Will clear variable data in {len(vss_stores)} VSS stores.")
+                print(f"    Store headers (first {vss_stores[0].header_size} bytes each) preserved.")
+                response = input("    Continue? [y/N]: ")
+                if response.lower() not in ('y', 'yes', 't', 'tak'):
+                    print("[*] Aborted.")
+                    sys.exit(0)
+            cleared = reset_vss_data(data, vss_stores)
+            output_path = Path(args.output) if args.output else input_path.with_stem(input_path.stem + "_nvram_reset")
+            output_path.write_bytes(data)
+            print(f"\n[+] Cleared {cleared:,} bytes across {len(vss_stores)} VSS stores")
+            print(f"[+] Written: {output_path}")
+            return
+        print("[!] No NVRAM variable store found (neither NVAR nor VSS).")
+        print("    This BIOS may use a different variable format.")
         sys.exit(1)
 
     print(f"\n[*] NVRAM region: 0x{region_start:06X} - 0x{region_end:06X}")

@@ -464,22 +464,45 @@ def api_nvram_reset():
     # Run NVRAM reset
     try:
         sys.path.insert(0, str(TOOLS_DIR))
-        from reset_nvram import find_nvram_region, reset_nvram
+        from reset_nvram import (find_nvram_region, reset_nvram,
+                                  parse_vss_stores, reset_vss_data,
+                                  VSSStore)
     except ImportError:
         return jsonify({"error": "reset_nvram module not available"}), 500
 
-    bios_data = abs_path.read_bytes()
+    bios_data = bytearray(abs_path.read_bytes())
+
+    # Try NVAR first, then VSS
     region = find_nvram_region(bios_data)
-
-    if region is None:
-        return jsonify({
-            "error": "No NVRAM region detected",
-            "details": "This BIOS may not use the NVAR variable store format, or the NVRAM area is not in the expected location.",
-            "file": relpath,
-        }), 400
-
-    # Perform the reset
-    repaired_data = reset_nvram(bios_data, region)
+    if region is not None:
+        repaired_data = reset_nvram(bios_data, region)
+        cleared = region.end - region.header_end
+        store_count = region.store_count
+        fmt = "nvar"
+        region_info = {
+            "start": f"0x{region.start:06X}",
+            "end": f"0x{region.end:06X}",
+            "size": region.size,
+            "stores_kept": region.store_count,
+        }
+    else:
+        vss_stores = parse_vss_stores(bios_data)
+        if not vss_stores:
+            return jsonify({
+                "error": "No NVRAM region detected",
+                "details": "Neither NVAR (AMI) nor VSS (Insyde) variable store found.",
+                "file": relpath,
+            }), 400
+        cleared = reset_vss_data(bios_data, vss_stores)
+        repaired_data = bytes(bios_data)
+        store_count = len(vss_stores)
+        fmt = "vss"
+        region_info = {
+            "start": f"0x{vss_stores[0].offset:06X}",
+            "end": f"0x{vss_stores[0].offset + vss_stores[0].size:06X}",
+            "size": vss_stores[0].size,
+            "stores_kept": len(vss_stores),
+        }
 
     # Save repaired file alongside original
     stem = abs_path.stem
@@ -492,15 +515,10 @@ def api_nvram_reset():
         "file": relpath,
         "repaired_file": str(repaired_path.relative_to(BIOS_DIR)),
         "repaired_name": repaired_name,
-        "region": {
-            "start": f"0x{region.start:06X}",
-            "end": f"0x{region.end:06X}",
-            "header_end": f"0x{region.header_end:06X}",
-            "size": region.size,
-            "stores_kept": region.store_count,
-        },
-        "cleared_bytes": region.end - region.header_end,
-        "original_sha256": hashlib.sha256(bios_data).hexdigest(),
+        "format": fmt,
+        "region": region_info,
+        "cleared_bytes": cleared,
+        "original_sha256": hashlib.sha256(abs_path.read_bytes()).hexdigest(),
         "repaired_sha256": hashlib.sha256(repaired_data).hexdigest(),
     })
 
