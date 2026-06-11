@@ -1,0 +1,126 @@
+# BIOS Analysis Toolkit — .gitignore
+# =============================================================================
+
+# ── BIOS Dumps (contain PII: serials, UUIDs, MACs, license keys) ──────────
+# NEVER commit raw BIOS binaries or extracted regions
+*.bin
+*.rom
+*.ROM
+*.BIN
+*.fd
+*.FD
+*.bio
+*.BIO
+*.cap
+*.CAP
+*.wph
+*.WPH
+*.fv
+*.FV
+OLD/
+
+# ── Analysis Outputs (may contain redacted-but-recoverable PII) ────────────
+*.analysis.json
+*.diff.json
+*_no_redact*
+!test_bios.analysis.json
+!test_bios.diff.json
+
+# ── Repaired / patched outputs (should not be distributed) ─────────────────
+*_nvram_reset.bin
+*_patched.bin
+*_repaired.bin
+*_rep.bin
+
+# ── Model Database (safe — redacted by design) ────────────────────────────
+# Intentionally committed:
+#   data/models/bios_models.json
+
+# ── Python ─────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+*.whl
+.Python
+pip-wheel-metadata/
+
+# Virtual environments
+venv/
+env/
+.venv/
+.env/
+env.bak/
+pythonenv*/
+
+# ── Testing & Coverage ─────────────────────────────────────────────────────
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+
+# ── IDE / Editor ───────────────────────────────────────────────────────────
+.idea/
+.vscode/
+.history/
+*.swp
+*.swo
+*~
+\#*\#
+.project
+.pydevproject
+.settings/
+*.sublime-*
+
+# ── OS Files ───────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ── Logs & Temporary ───────────────────────────────────────────────────────
+*.log
+*.tmp
+*.temp
+*.bak
+*.backup
+*.orig
+
+# ── Environment & Secrets ──────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets*.json
+credentials*.json
+
+# ── Reference / Third-party Source ─────────────────────────────────────────
+UEFIExtract_source_code/
+
+# ── Docker ─────────────────────────────────────────────────────────────────
+.dockerignore
+docker-compose.override.yml
+
+# ── Jupyter Notebooks ─────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb
+
+# ── Keep These ─────────────────────────────────────────────────────────────
+# Repository structure markers
+!.gitkeep
+
+# Example / test files (small, synthetic, no real PII)
+!data/raw/test_bios.bin

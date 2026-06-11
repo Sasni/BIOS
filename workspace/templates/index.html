@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BIOS Toolkit</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="app-layout">
+        <!-- ── Sidebar ────────────────────────────────────────────── -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div>
+                    <div class="logo">BIOS<span style="color:var(--accent)">::</span>TK</div>
+                    <small>Analysis &amp; Repair Toolkit</small>
+                </div>
+            </div>
+
+            <!-- Upload zone -->
+            <div class="upload-zone" id="uploadZone"
+                 onclick="document.getElementById('uploadInput').click()"
+                 ondrop="onDrop(event)" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)">
+                <div class="upload-icon">📂</div>
+                <div class="upload-text">Drop <strong>.bin</strong> file here</div>
+                <div class="upload-hint">or click to browse</div>
+                <input type="file" id="uploadInput" accept=".bin" style="display:none" onchange="onFileSelected(this)">
+            </div>
+
+            <!-- File info (shown after upload) -->
+            <div class="file-info-panel hidden" id="fileInfoPanel">
+                <div class="file-info-name" id="sidebarFileName"></div>
+                <div class="file-info-meta" id="sidebarFileMeta"></div>
+                <div class="flex gap-1 mt-2">
+                    <button class="btn small" onclick="switchTab('analyze')">Analyze</button>
+                    <button class="btn small" onclick="switchTab('hex')">Hex</button>
+                    <button class="btn small" style="color:var(--accent-red);" onclick="clearFile()" title="Remove file">✕</button>
+                </div>
+            </div>
+
+            <!-- Model DB stats -->
+            <div class="sidebar-footer">
+                <button class="btn small" onclick="showDbStats()" title="Model database stats">DB Stats</button>
+                <span class="text-sm text-muted" id="dbStatus"></span>
+            </div>
+        </aside>
+
+        <!-- ── Main ────────────────────────────────────────────────── -->
+        <main class="main-content">
+            <!-- Toolbar / Tabs -->
+            <div class="toolbar" id="mainToolbar">
+                <div class="tabs">
+                    <button class="tab active" data-tab="info" onclick="switchTab('info')">Info</button>
+                    <button class="tab" data-tab="hex" onclick="switchTab('hex')">Hex</button>
+                    <button class="tab" data-tab="diff" onclick="switchTab('diff')">Diff</button>
+                    <button class="tab" data-tab="fix" onclick="switchTab('fix')">Fix</button>
+                </div>
+                <div class="spacer"></div>
+                <span class="status" id="statusBar">Drop a .bin file to start</span>
+            </div>
+
+            <!-- Content Area -->
+            <div class="content-area" id="contentArea">
+                <!-- Default / Info view -->
+                <div id="view-info">
+                    <div class="empty-state">
+                        <div class="icon">📂</div>
+                        <p>Drop a BIOS dump on the left panel to begin.</p>
+                        <p class="text-sm text-muted mt-2">Supports SPI flash dumps (2–32 MB) — AMI, Insyde, full SPI or extracted regions.</p>
+                        <p class="text-sm text-muted">Intel IFD, ME, GbE, NVRAM, FIT, SMBIOS, and AMI modules.</p>
+                    </div>
+                </div>
+
+                <!-- Hex view -->
+                <div id="view-hex" class="hidden">
+                    <div class="flex gap-2 mb-2" style="align-items:center;">
+                        <input type="text" id="hexOffset" placeholder="Jump to (hex)" value="0x0" style="width:100px;">
+                        <button class="btn small" onclick="jumpToHex(parseInt(document.getElementById('hexOffset').value, 16) || 0)">Go</button>
+                        <span class="text-sm text-muted" id="hexRange">0x0 - 0x0 / 0x0</span>
+                        <span class="spacer"></span>
+                        <input type="text" id="hexSearch" placeholder="Search (string or hex)" style="flex:1;max-width:300px;">
+                        <select id="hexSearchMode" style="width:80px;">
+                            <option value="string">String</option>
+                            <option value="hex">Hex</option>
+                        </select>
+                        <button class="btn small" onclick="searchHex()">Search</button>
+                    </div>
+                    <div id="hexViewer" class="panel">
+                        <div class="panel-header"><span>Hex View</span><span class="text-muted text-sm" id="hexLoadStatus"></span></div>
+                        <div class="panel-body"><div class="hex-viewer" id="hexContent" onscroll="onHexScroll()"><div class="empty-state"><p>Upload a file to start</p></div></div></div>
+                    </div>
+                    <div id="hexSearchResults" class="hidden mt-2"></div>
+                </div>
+
+                <!-- Diff view -->
+                <div id="view-diff" class="hidden">
+                    <div class="flex gap-2 mb-2" style="align-items:center;flex-wrap:wrap;">
+                        <label class="text-sm text-muted">Original:</label>
+                        <span class="text-sm" id="diffOrigLabel">(uploaded file)</span>
+                        <label class="text-sm text-muted">vs Repaired:</label>
+                        <div class="upload-zone-inline" id="diffUploadZone"
+                             onclick="document.getElementById('diffUploadInput').click()"
+                             ondrop="onDiffDrop(event)" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)"
+                             style="flex:1;min-width:150px;padding:6px 12px;text-align:center;font-size:12px;">
+                            Drop or click for second .bin
+                        </div>
+                        <input type="file" id="diffUploadInput" accept=".bin" style="display:none" onchange="onDiffFileSelected(this)">
+                        <button class="btn primary small" onclick="loadDiff()">Diff</button>
+                    </div>
+                    <div id="diffContent"></div>
+                </div>
+
+                <!-- Fix / Repair view -->
+                <div id="view-fix" class="hidden"></div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/js/bios-ui.js?v=3"></script>
+</body>
+</html>

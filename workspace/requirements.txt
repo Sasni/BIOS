@@ -1,0 +1,10 @@
+# BIOS Analysis Toolkit - Requirements
+# Core dependencies (stdlib only for now)
+# Optional: install these for enhanced functionality
+# pip install uefi-firmware-parser python-magic construct pycryptodome
+
+# For UEFI parsing (optional, more advanced)
+# uefi-firmware-parser>=1.0
+
+# For entropy analysis (optional)
+# scipy>=1.10  # for proper entropy calculation
