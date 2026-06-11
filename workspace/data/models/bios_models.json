@@ -1,0 +1,863 @@
+[
+  {
+    "vendor": "ASUS",
+    "model": "ROG",
+    "bios_version": "Unknown",
+    "bios_date": "01/15/2023",
+    "board_id": "Unknown",
+    "spi_chip": "",
+    "size_mb": 16.0,
+    "sha256": "c0fa61f720e51426db570359c094c4c68d88e5a1cfd2ade71102bc6007c628fb",
+    "regions": [
+      {
+        "name": "DESCRIPTOR",
+        "offset": "0x00000000",
+        "size": 4096,
+        "sha256": "c33f8fbbf108563b31155b2e65d1b84707effdc528866bbddd727979704a289d",
+        "entropy": 0.0131
+      },
+      {
+        "name": "ME",
+        "offset": "0x00001000",
+        "size": 3141632,
+        "sha256": "743beff9968fc29bef1ddec4dd3e198b08ddf061b6dd3f22c7d92bc72d1968d3",
+        "entropy": 0.0
+      },
+      {
+        "name": "BIOS",
+        "offset": "0x00300000",
+        "size": 13631505,
+        "sha256": "8b099ba648eb8abc9f2a5b3c2c1514ad504cd682f9d0e5c98a5423dce609bacf",
+        "entropy": 0.0003
+      },
+      {
+        "name": "GBE",
+        "offset": "0x00700000",
+        "size": 65536,
+        "sha256": "ba206d313eec28b8f35a531fe68c7d9677d2692dc461baf863655379a7ad43b9",
+        "entropy": 0.0026
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00300000",
+        "size": 1048576,
+        "sha256": "6149cd741a0d86bf94d08255ffc14204a0e314b47ba2b45d116371802ebd2320",
+        "entropy": 0.0018
+      }
+    ],
+    "notes": "",
+    "source_file": "asus_rog_g14.bin",
+    "analysis_date": "2026-06-10T19:44:22.859379"
+  },
+  {
+    "vendor": "DELL",
+    "model": "Latitude",
+    "bios_version": "Unknown",
+    "bios_date": "03/15/2023",
+    "board_id": "Unknown",
+    "spi_chip": "",
+    "size_mb": 16.0,
+    "sha256": "2579dc506963bed2b9f4863a4b350af990914d2464c56f7911c4c01e03020440",
+    "regions": [
+      {
+        "name": "DESCRIPTOR",
+        "offset": "0x00000000",
+        "size": 4096,
+        "sha256": "c33f8fbbf108563b31155b2e65d1b84707effdc528866bbddd727979704a289d",
+        "entropy": 0.0131
+      },
+      {
+        "name": "ME",
+        "offset": "0x00001000",
+        "size": 3141632,
+        "sha256": "743beff9968fc29bef1ddec4dd3e198b08ddf061b6dd3f22c7d92bc72d1968d3",
+        "entropy": 0.0
+      },
+      {
+        "name": "BIOS",
+        "offset": "0x00300000",
+        "size": 13631505,
+        "sha256": "0312fbd791c40f24eb2d570d08530b0121b0f72cbae86be1d91e30319e241f99",
+        "entropy": 0.0003
+      },
+      {
+        "name": "GBE",
+        "offset": "0x00700000",
+        "size": 65536,
+        "sha256": "ba206d313eec28b8f35a531fe68c7d9677d2692dc461baf863655379a7ad43b9",
+        "entropy": 0.0026
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00300000",
+        "size": 1048576,
+        "sha256": "6149cd741a0d86bf94d08255ffc14204a0e314b47ba2b45d116371802ebd2320",
+        "entropy": 0.0018
+      }
+    ],
+    "notes": "",
+    "source_file": "dell_lat7430.bin",
+    "analysis_date": "2026-06-10T19:44:24.939799"
+  },
+  {
+    "vendor": "Unknown",
+    "model": "EliteBook",
+    "bios_version": "Unknown",
+    "bios_date": "02/20/2023",
+    "board_id": "Unknown",
+    "spi_chip": "",
+    "size_mb": 16.0,
+    "sha256": "66edc7f46700d05d70f2d48409ffe792194654db87c709c95db5e65e53156175",
+    "regions": [
+      {
+        "name": "DESCRIPTOR",
+        "offset": "0x00000000",
+        "size": 4096,
+        "sha256": "c33f8fbbf108563b31155b2e65d1b84707effdc528866bbddd727979704a289d",
+        "entropy": 0.0131
+      },
+      {
+        "name": "ME",
+        "offset": "0x00001000",
+        "size": 3141632,
+        "sha256": "743beff9968fc29bef1ddec4dd3e198b08ddf061b6dd3f22c7d92bc72d1968d3",
+        "entropy": 0.0
+      },
+      {
+        "name": "BIOS",
+        "offset": "0x00300000",
+        "size": 13631505,
+        "sha256": "34c703f3845a600ff902c5300a6634bd4a160926082069946933dd809719e611",
+        "entropy": 0.0003
+      },
+      {
+        "name": "GBE",
+        "offset": "0x00700000",
+        "size": 65536,
+        "sha256": "ba206d313eec28b8f35a531fe68c7d9677d2692dc461baf863655379a7ad43b9",
+        "entropy": 0.0026
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00300000",
+        "size": 1048576,
+        "sha256": "6149cd741a0d86bf94d08255ffc14204a0e314b47ba2b45d116371802ebd2320",
+        "entropy": 0.0018
+      }
+    ],
+    "notes": "",
+    "source_file": "hp_eb840g9.bin",
+    "analysis_date": "2026-06-10T19:44:27.028456"
+  },
+  {
+    "vendor": "LENOVO",
+    "model": "ThinkPad",
+    "bios_version": "Unknown",
+    "bios_date": "05/15/2023",
+    "board_id": "21AJ 1",
+    "spi_chip": "",
+    "size_mb": 16.0,
+    "sha256": "ca8785b461bb56884f2508543666bbbf154496e5714baf78c82b476477490ec5",
+    "regions": [
+      {
+        "name": "DESCRIPTOR",
+        "offset": "0x00000000",
+        "size": 4096,
+        "sha256": "c33f8fbbf108563b31155b2e65d1b84707effdc528866bbddd727979704a289d",
+        "entropy": 0.0131
+      },
+      {
+        "name": "ME",
+        "offset": "0x00001000",
+        "size": 3141632,
+        "sha256": "743beff9968fc29bef1ddec4dd3e198b08ddf061b6dd3f22c7d92bc72d1968d3",
+        "entropy": 0.0
+      },
+      {
+        "name": "BIOS",
+        "offset": "0x00300000",
+        "size": 13631520,
+        "sha256": "58f0e9b07076fac44df8a03aeb5ac12997ec7e55ce121d3711a372201f74a79f",
+        "entropy": 0.0005
+      },
+      {
+        "name": "GBE",
+        "offset": "0x00700000",
+        "size": 65536,
+        "sha256": "4aa2651f997458302e501949aebcced946bfb50fe7815173666ee055953e24e1",
+        "entropy": 0.0024
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00300000",
+        "size": 1048576,
+        "sha256": "5f3946f979cbf380f581c15413fe4baceb68d77394bb5ec6881d0ea7e81e8cb6",
+        "entropy": 0.0046
+      }
+    ],
+    "notes": "",
+    "source_file": "test_bios_repaired.bin",
+    "analysis_date": "2026-06-10T19:45:19.435953"
+  },
+  {
+    "vendor": "Hp",
+    "model": "gS",
+    "bios_version": "Unknown",
+    "bios_date": "Unknown",
+    "board_id": "Unknown",
+    "spi_chip": "",
+    "size_mb": 8.0,
+    "sha256": "5ba88a4e570d92c6f010cdda6b70a31445dba58f181ed9c4b80c9f09bc3113b4",
+    "regions": [
+      {
+        "name": "DESCRIPTOR",
+        "offset": "0x00000000",
+        "size": 4096,
+        "sha256": "cb4555cf293bd10367491e102f81ea708c0c5c0ce20eb09ad7797eb477fbe6a9",
+        "entropy": 1.2599
+      },
+      {
+        "name": "ME",
+        "offset": "0x00001000",
+        "size": 3141632,
+        "sha256": "92fa47571f4939f276639b8a3d99d8d7a942bac8c8027b19635418923b134427",
+        "entropy": 6.444
+      },
+      {
+        "name": "BIOS",
+        "offset": "0x00300000",
+        "size": 5242880,
+        "sha256": "3d8313d52fb55d0a3e92a47a433188c712173ce7dc456caaaf3e69a533ab6aff",
+        "entropy": 0.6774
+      },
+      {
+        "name": "GBE",
+        "offset": "0x00700000",
+        "size": 65536,
+        "sha256": "71189f7fb6aed638640078fba3a35fda6c39c8962e74dcc75935aac948da9063",
+        "entropy": 0.0
+      }
+    ],
+    "notes": "",
+    "source_file": "lenovo legion stachurki_rep.bin",
+    "analysis_date": "2026-06-10T19:45:01.459466"
+  },
+  {
+    "vendor": "Lenovo",
+    "model": "Ideapad",
+    "bios_version": "4k4",
+    "bios_date": "27/03/2015",
+    "board_id": "s0 kRi y2m meY ",
+    "spi_chip": "",
+    "size_mb": 16.0,
+    "sha256": "ab2c049e30722019256666a01e8c882dee5ebf3cd7482bdbc5cec357677e2ee3",
+    "regions": [
+      {
+        "name": "DESCRIPTOR",
+        "offset": "0x00000000",
+        "size": 4096,
+        "sha256": "2afe69049da2cba4b44ab67e136916f1e9640e3f218d1359bcb1e357ed44db80",
+        "entropy": 7.4338
+      },
+      {
+        "name": "ME",
+        "offset": "0x00001000",
+        "size": 3141632,
+        "sha256": "7c3d919ee3b31be5a3112bf04b0d1d4eb4e6854055aaaf45182094dcaaed1506",
+        "entropy": 5.3038
+      },
+      {
+        "name": "BIOS",
+        "offset": "0x00300000",
+        "size": 13631488,
+        "sha256": "35af2d71507b5122b2a865c93393a4b2580e7d29a46092871dfe6c488cb1cc49",
+        "entropy": 4.1504
+      },
+      {
+        "name": "GBE",
+        "offset": "0x00700000",
+        "size": 65536,
+        "sha256": "71189f7fb6aed638640078fba3a35fda6c39c8962e74dcc75935aac948da9063",
+        "entropy": 0.0
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00000028",
+        "size": 18446744070812554788,
+        "sha256": "c05d5acfed0ecb22d7b471cc7ce9b9821c845108f188a327f74eea199d92c4cd",
+        "entropy": 4.3822
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00060030",
+        "size": 18446744070812554788,
+        "sha256": "761db10f51e57bb31eaa241642da6906c46848882a5f1b73cac7b78524a40ab4",
+        "entropy": 4.4632
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00196028",
+        "size": 18446744073709551615,
+        "sha256": "afaa2eeccd5dcb2ead8546bf1ad9933f7dcf2db8642c27d3535668c3c3397910",
+        "entropy": 4.6539
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00800028",
+        "size": 18446744073709551615,
+        "sha256": "636ea2ff70ebe6f73596ce4541749bb30b43397d69a58de71d50de039218cc02",
+        "entropy": 4.3127
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00880028",
+        "size": 5725142971753319800,
+        "sha256": "f44cb203289e17bde7c043fbb69df8dc82a72d3caaa8c9a30d874f1b6111eb0b",
+        "entropy": 4.5405
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00900028",
+        "size": 18446744073709551615,
+        "sha256": "78d7e6c90c4ee9a53f34276cb59bfbe82e4a7b59f54d45c190afd1ff95301899",
+        "entropy": 4.3168
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00960028",
+        "size": 18446744073709551615,
+        "sha256": "9f9f5d147ab063038afaf3a66ef4e5ee6d33d60100c2156613a7cdd84e9b68a9",
+        "entropy": 4.3834
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00A20028",
+        "size": 18446744073709551615,
+        "sha256": "006f1340de0f0dee24ce5c46f02697b3cc09ada276c6cc8af1a55c80da4cc4c3",
+        "entropy": 4.3129
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00AB0028",
+        "size": 18446744073709551615,
+        "sha256": "870508eb0b2ad330368e6609563e462222833d79c78ed4afbf562f58fd566426",
+        "entropy": 4.2537
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00AB2409",
+        "size": 308088999533793349,
+        "sha256": "193781be45f374144c81262c681add69f36e5b5f9a3b1d3a4d2f0931176e112e",
+        "entropy": 4.2481
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00B34C53",
+        "size": 16741604360253664387,
+        "sha256": "bef1bc92f32abca9544ed8e15e2e6e8b3a902e34960d232f04ab4b67e64728c6",
+        "entropy": 3.8716
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00BC0028",
+        "size": 18446744073709551615,
+        "sha256": "ec63090caa46eef3f357a06ff743f0726ad99e0c9481011f07be26cedc91a13c",
+        "entropy": 4.2316
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00BD1028",
+        "size": 18446744073709551615,
+        "sha256": "462e8cb50a726b121d901f34da767c8e27654c68b142fbd12e9ea10788361c58",
+        "entropy": 4.2457
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00BFB37E",
+        "size": 8360691883118625040,
+        "sha256": "25c427783bd1b069e344dda793e93bf9d61aff2c70e1c9cb2c5f79ca85665e3c",
+        "entropy": 4.3294
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00C00028",
+        "size": 18446744073709551615,
+        "sha256": "72937d846554a3b3df3408f54ce455177bd1a38bcf7eb20e6b12e7ad8d69e214",
+        "entropy": 4.3127
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00C80028",
+        "size": 5725142971753319800,
+        "sha256": "2a3f54e60e48647cc3c3ce19ac48d85d44912f672021c8f7977932308e5e87cc",
+        "entropy": 4.7946
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00D00028",
+        "size": 18446744073709551615,
+        "sha256": "f2fc6dfc7c3f5d5eadf901897fbbced97e599d9cac68cf4095f3ef93cd4e8c87",
+        "entropy": 4.3161
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00D60028",
+        "size": 18446744073709551615,
+        "sha256": "1692c48f18f7c31aa8979174abcd954ec869d83312269d36185242412a2c6339",
+        "entropy": 4.4849
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00E20028",
+        "size": 18446744073709551615,
+        "sha256": "c7077be2a6165138c9bd65e4086521a1ed1bc2b8bb79137614ac79bed68d73ed",
+        "entropy": 4.3054
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00EB0028",
+        "size": 18446744073709551615,
+        "sha256": "1ca369d787ef07f57b081e06fa179124ce23df13622099181468be7973579189",
+        "entropy": 4.0081
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00EB2409",
+        "size": 308088999533793349,
+        "sha256": "22b51ddec8784623e775f908bb1e0c23af58e25b843c2a8c41464fc75c5a864f",
+        "entropy": 3.9843
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00F34C53",
+        "size": 16741604360253664387,
+        "sha256": "0ab0b4eca900a9204972790197f3cc4758d6095f1a124731e3c42ea44c8021e1",
+        "entropy": 1.3077
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00FC0028",
+        "size": 18446744073709551615,
+        "sha256": "4f3817d6eef9853e70b08e14d8168ab6a278a7fe0f33099fcf45177a13ee8ff4",
+        "entropy": 2.7607
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00FD1028",
+        "size": 18446744073709551615,
+        "sha256": "2e25e3c829524a43757b7fa279b42d4047cc54da587fc52c6bf809495a5993f4",
+        "entropy": 2.5533
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00FFB37E",
+        "size": 8360691883118625040,
+        "sha256": "2bb526d0b24d661189e560c2ffd24296628a7e44cb0d47a6fc660f80a5d6a708",
+        "entropy": 5.9623
+      }
+    ],
+    "notes": "",
+    "source_file": "lenovo legion stachurki2_rep.bin",
+    "analysis_date": "2026-06-10T19:44:57.939918"
+  },
+  {
+    "vendor": "hp",
+    "model": "gP",
+    "bios_version": "Protocol",
+    "bios_date": "Unknown",
+    "board_id": "s",
+    "spi_chip": "",
+    "size_mb": 8.0,
+    "sha256": "3ae7839aa40bd098c96ce68cee47fc8e3c2e04a8d213ae9082d4b6d17dbbc100",
+    "regions": [
+      {
+        "name": "DESCRIPTOR",
+        "offset": "0x00000000",
+        "size": 4096,
+        "sha256": "d091aad4c97fb30657ef811b0ff1fb9f4adce48860c269237dd7ae2de605759b",
+        "entropy": 0.4299
+      },
+      {
+        "name": "ME",
+        "offset": "0x00001000",
+        "size": 3141632,
+        "sha256": "f318b2bb2826056ef9babe6c8461e5c6799a5fbe3313e6fd97de4cbe65668d7c",
+        "entropy": 5.181
+      },
+      {
+        "name": "BIOS",
+        "offset": "0x00300000",
+        "size": 5242880,
+        "sha256": "ed04177c88d389dc92490570cebb6be7360453a349e57ecc017891b3042ac131",
+        "entropy": 4.8355
+      },
+      {
+        "name": "GBE",
+        "offset": "0x00700000",
+        "size": 65536,
+        "sha256": "5082e19bdf65af8faada7cd7413173fae47089d513da0401781f22ed79807460",
+        "entropy": 7.9972
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x0020E028",
+        "size": 527457741657636,
+        "sha256": "58a4928b9127f04ac136b868f6136c534cf29ec66f9b260c9462f1d30bccc960",
+        "entropy": 4.8167
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x0024C030",
+        "size": 18446744070812554788,
+        "sha256": "b5bc6b281086181534ce02edc1a14c6dfe04f3db4e5fd68fdcfde9c36e36d78f",
+        "entropy": 4.9252
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00260028",
+        "size": 5270610512608866870,
+        "sha256": "9543f8d358da89d9a4eb5decb67dd274d34d5019138efcf72b80ffa1572845ed",
+        "entropy": 4.966
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x002AD028",
+        "size": 4758216632235231945,
+        "sha256": "13f50c91beed305e168da5bf3dc75809abcf9c6afdb0a9c4bc0233b66575901d",
+        "entropy": 5.0903
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x0076D028",
+        "size": 18446744073709551615,
+        "sha256": "8ca62bba86448352a66e43e2512149461eca31551d363cb19209308cebed3de5",
+        "entropy": 5.6012
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x007C05F0",
+        "size": 6717178720382647939,
+        "sha256": "3fd0c23fb3b6c3b76a603c4a488b7693cfc5362abc719769968a3e3b443b95b4",
+        "entropy": 4.1521
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x007D0028",
+        "size": 18446744073709551615,
+        "sha256": "015d5548a6c948a3e2443c1ed42a6a0a0b52b05dcbe258d299cf99d0e210220f",
+        "entropy": 5.0637
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x007D1A17",
+        "size": 308089002752576784,
+        "sha256": "f6f448d3c5119d7f4a2f73a45560bb912a6654c26b1fd60cfac3bf96d509d056",
+        "entropy": 5.0033
+      }
+    ],
+    "notes": "",
+    "source_file": "monika walczyk hp.bin",
+    "analysis_date": "2026-06-10T19:45:09.618529"
+  },
+  {
+    "vendor": "Hp",
+    "model": "gS",
+    "bios_version": "Protocol",
+    "bios_date": "Unknown",
+    "board_id": "s",
+    "spi_chip": "",
+    "size_mb": 8.0,
+    "sha256": "151ebdfa6c4f9b0128935c8fd4bee20868e98cff33ec2526bcab5d2c2d266722",
+    "regions": [
+      {
+        "name": "DESCRIPTOR",
+        "offset": "0x00000000",
+        "size": 4096,
+        "sha256": "d091aad4c97fb30657ef811b0ff1fb9f4adce48860c269237dd7ae2de605759b",
+        "entropy": 0.4299
+      },
+      {
+        "name": "ME",
+        "offset": "0x00001000",
+        "size": 3141632,
+        "sha256": "61f4c144ea62d9f19ef7c7c62bf1c3e9776edb6422c4c020e691339cce53197d",
+        "entropy": 4.2411
+      },
+      {
+        "name": "BIOS",
+        "offset": "0x00300000",
+        "size": 5242880,
+        "sha256": "053b2ce2c7a78c6fe33974929f1e6dd742bed3b3bbee4098e85f01187067651f",
+        "entropy": 4.8348
+      },
+      {
+        "name": "GBE",
+        "offset": "0x00700000",
+        "size": 65536,
+        "sha256": "a88d0796b30d8b3579613f927be90c5b0a462f67076a9b7a1856ced3aa8383c8",
+        "entropy": 7.997
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x0020E028",
+        "size": 18446744070812554788,
+        "sha256": "fd832b722be04ffb9bdfc70120b10e7325e873e1c3a89d29af3a23f7792f7a00",
+        "entropy": 4.7647
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x0024C030",
+        "size": 18446744070812554788,
+        "sha256": "8a3c3283d524d6bcefca9f25950083ecd7aad9073313b8c977caf23c8e0c82d3",
+        "entropy": 4.9259
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00260028",
+        "size": 5270610512608866870,
+        "sha256": "a0723b3e109d746d4238e62e3375d2150412e5fddc0f68bf3e2240dcde6a09bc",
+        "entropy": 4.9667
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x002AD028",
+        "size": 4758216632235231945,
+        "sha256": "bc8a5d9f7b6bfd41274086d5209587c121a638cb16d094ba2a2f653080785253",
+        "entropy": 5.0896
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x006DD028",
+        "size": 5455012736604626089,
+        "sha256": "109d73e8dbed504abe318f0d43fed4c49146aa3f28e687483366d9dd08da496f",
+        "entropy": 5.2848
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x0076C028",
+        "size": 5222906764080011006,
+        "sha256": "fec2a45ad76f975bdc09952e02221512709b43b224fa7a34fb2e3e5db650ab47",
+        "entropy": 5.5911
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x0076D028",
+        "size": 18446744073709551615,
+        "sha256": "372a50e17b0ce294e62e598d665b0ea2073b177e5ad44c1e2d2f676e75699e64",
+        "entropy": 5.6039
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x007C0770",
+        "size": 6717178720382647939,
+        "sha256": "d5a1de8820bfe0576de31c264e086021d258008b4fcc2e0ff1ccb63d695868cf",
+        "entropy": 4.1566
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x007D0028",
+        "size": 18446744073709551615,
+        "sha256": "ae8e42157befe7e1bd200cf702eefcf24595f9bb3f160bd49854d8cc44fb90dd",
+        "entropy": 5.0637
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x007D1A17",
+        "size": 308089002752576784,
+        "sha256": "f6f448d3c5119d7f4a2f73a45560bb912a6654c26b1fd60cfac3bf96d509d056",
+        "entropy": 5.0033
+      }
+    ],
+    "notes": "",
+    "source_file": "monika walczyk hp_rep.bin",
+    "analysis_date": "2026-06-10T19:45:15.273594"
+  },
+  {
+    "vendor": "Unknown",
+    "model": "Unknown",
+    "bios_version": "Unknown",
+    "bios_date": "Unknown",
+    "board_id": "Unknown",
+    "spi_chip": "",
+    "size_mb": 16.0,
+    "sha256": "3a1d5cd00278d2bfe51bb3a8617f50dc633f2f8a712f735fe13cabfd056cb6e1",
+    "regions": [
+      {
+        "name": "DESCRIPTOR",
+        "offset": "0x00000000",
+        "size": 4096,
+        "sha256": "c33f8fbbf108563b31155b2e65d1b84707effdc528866bbddd727979704a289d",
+        "entropy": 0.0131
+      },
+      {
+        "name": "ME",
+        "offset": "0x00001000",
+        "size": 3141632,
+        "sha256": "743beff9968fc29bef1ddec4dd3e198b08ddf061b6dd3f22c7d92bc72d1968d3",
+        "entropy": 0.0
+      },
+      {
+        "name": "BIOS",
+        "offset": "0x00300000",
+        "size": 13631505,
+        "sha256": "3e4e18297772910e0d3c56d4234fb4b7a0cd85239469fe25a509b21593225ab1",
+        "entropy": 0.0003
+      },
+      {
+        "name": "GBE",
+        "offset": "0x00700000",
+        "size": 65536,
+        "sha256": "ba206d313eec28b8f35a531fe68c7d9677d2692dc461baf863655379a7ad43b9",
+        "entropy": 0.0026
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00300000",
+        "size": 1048576,
+        "sha256": "6149cd741a0d86bf94d08255ffc14204a0e314b47ba2b45d116371802ebd2320",
+        "entropy": 0.0018
+      }
+    ],
+    "notes": "",
+    "source_file": "lenovo_x1cg10.bin",
+    "analysis_date": "2026-06-10T20:14:03.432135"
+  },
+  {
+    "vendor": "HP",
+    "model": "Unknown",
+    "bios_version": "u7Z",
+    "bios_date": "Unknown",
+    "board_id": "RY4",
+    "spi_chip": "",
+    "size_mb": 8.0,
+    "sha256": "f096a6155652ad78325c8016cec3d33829f4b9c9386215799ff503117eb15b6e",
+    "regions": [
+      {
+        "name": "UNKNOWN",
+        "offset": "0x00000000",
+        "size": 8388608,
+        "sha256": "f096a6155652ad78325c8016cec3d33829f4b9c9386215799ff503117eb15b6e",
+        "entropy": 3.5114
+      }
+    ],
+    "notes": "",
+    "source_file": "lenovo legion stachurki.bin",
+    "analysis_date": "2026-06-10T20:14:00.317959"
+  },
+  {
+    "vendor": "HP",
+    "model": "Unknown",
+    "bios_version": "Unknown",
+    "bios_date": "Unknown",
+    "board_id": "zP1",
+    "spi_chip": "",
+    "size_mb": 8.0,
+    "sha256": "151ebdfa6c4f9b0128935c8fd4bee20868e98cff33ec2526bcab5d2c2d266722",
+    "regions": [
+      {
+        "name": "BIOS_REGION",
+        "offset": "0x00000000",
+        "size": 8388608,
+        "sha256": "151ebdfa6c4f9b0128935c8fd4bee20868e98cff33ec2526bcab5d2c2d266722",
+        "entropy": 4.6179
+      }
+    ],
+    "notes": "",
+    "source_file": "monika walczyk hp_rep.bin",
+    "analysis_date": "2026-06-10T20:14:04.483069"
+  },
+  {
+    "vendor": "MSI",
+    "model": "Unknown",
+    "bios_version": "Unknown",
+    "bios_date": "Unknown",
+    "board_id": "St6",
+    "spi_chip": "",
+    "size_mb": 8.0,
+    "sha256": "5ba88a4e570d92c6f010cdda6b70a31445dba58f181ed9c4b80c9f09bc3113b4",
+    "regions": [
+      {
+        "name": "UNKNOWN",
+        "offset": "0x00000000",
+        "size": 8388608,
+        "sha256": "5ba88a4e570d92c6f010cdda6b70a31445dba58f181ed9c4b80c9f09bc3113b4",
+        "entropy": 3.2196
+      }
+    ],
+    "notes": "",
+    "source_file": "lenovo legion stachurki_rep.bin",
+    "analysis_date": "2026-06-10T20:14:02.574179"
+  },
+  {
+    "vendor": "HP",
+    "model": "Xps 3UP 55",
+    "bios_version": "Unknown",
+    "bios_date": "Unknown",
+    "board_id": "iE8",
+    "spi_chip": "",
+    "size_mb": 8.0,
+    "sha256": "3ae7839aa40bd098c96ce68cee47fc8e3c2e04a8d213ae9082d4b6d17dbbc100",
+    "regions": [
+      {
+        "name": "BIOS_REGION",
+        "offset": "0x00000000",
+        "size": 8388608,
+        "sha256": "3ae7839aa40bd098c96ce68cee47fc8e3c2e04a8d213ae9082d4b6d17dbbc100",
+        "entropy": 4.9716
+      }
+    ],
+    "notes": "",
+    "source_file": "monika walczyk hp.bin",
+    "analysis_date": "2026-06-10T20:14:03.946204"
+  },
+  {
+    "vendor": "LENOVO",
+    "model": "ThinkPad T14 Gen 3",
+    "bios_version": "Unknown",
+    "bios_date": "05/15/2023",
+    "board_id": "21AJ",
+    "spi_chip": "",
+    "size_mb": 16.0,
+    "sha256": "ca8785b461bb56884f2508543666bbbf154496e5714baf78c82b476477490ec5",
+    "regions": [
+      {
+        "name": "DESCRIPTOR",
+        "offset": "0x00000000",
+        "size": 4096,
+        "sha256": "c33f8fbbf108563b31155b2e65d1b84707effdc528866bbddd727979704a289d",
+        "entropy": 0.0131
+      },
+      {
+        "name": "ME",
+        "offset": "0x00001000",
+        "size": 3141632,
+        "sha256": "743beff9968fc29bef1ddec4dd3e198b08ddf061b6dd3f22c7d92bc72d1968d3",
+        "entropy": 0.0
+      },
+      {
+        "name": "BIOS",
+        "offset": "0x00300000",
+        "size": 13631520,
+        "sha256": "58f0e9b07076fac44df8a03aeb5ac12997ec7e55ce121d3711a372201f74a79f",
+        "entropy": 0.0005
+      },
+      {
+        "name": "GBE",
+        "offset": "0x00700000",
+        "size": 65536,
+        "sha256": "4aa2651f997458302e501949aebcced946bfb50fe7815173666ee055953e24e1",
+        "entropy": 0.0024
+      },
+      {
+        "name": "UEFI_FV_unknown",
+        "offset": "0x00300000",
+        "size": 1048576,
+        "sha256": "5f3946f979cbf380f581c15413fe4baceb68d77394bb5ec6881d0ea7e81e8cb6",
+        "entropy": 0.0046
+      }
+    ],
+    "notes": "",
+    "source_file": "test_bios_repaired.bin",
+    "analysis_date": "2026-06-10T20:14:06.194539"
+  }
+]

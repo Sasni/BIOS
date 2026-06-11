@@ -1,0 +1,22 @@
+# BIOS Analysis Toolkit - Workspace .gitignore
+# Supplement to root .gitignore
+
+# Raw BIOS dumps
+data/raw/*.bin
+
+# Analysis outputs (may contain PII traces)
+data/parsed/*
+data/raw/*.analysis.json
+data/raw/*.diff.json
+data/raw/*.json
+!data/parsed/.gitkeep
+!data/raw/.gitkeep
+
+# Debug / test artifacts
+*_test_*
+*debug*
+
+# Temp files
+*.tmp
+*.temp
+*.orig
