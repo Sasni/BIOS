@@ -40,6 +40,7 @@ TOOL_MAP: dict[str, ToolDef] = {
     "find":     ToolDef("bios_finder"),
     "patch":    ToolDef("me_clean_patch", "patches"),
     "nvram":    ToolDef("reset_nvram"),
+    "nvar":     ToolDef("nvar_parser"),
 }
 
 

@@ -19,8 +19,8 @@ FIT_SIGNATURE = 0x2020205F5449465F  # "_FIT_   "
 FLVALSIG = 0x0FF0A55A               # Flash Valid Signature at SPI offset 0x10
 IFD_FCBA_OFFSET = 0x30              # FCBA field: SPI offset (descriptor +0x20)
 IFD_FRBA_OFFSET = 0x34              # FRBA field: SPI offset (descriptor +0x24)
-FLREG_BASE_SHIFT = 16               # FLREG0: base in bits [31:16]
-FLREG_MASK = 0x7FFF                 # 15-bit base/limit mask (supports up to 128 MB regions)
+FLREG_BASE_SHIFT = 16               # FLREGx: limit in bits [30:16] (shift right by 16)
+FLREG_MASK = 0x7FFF                 # 15-bit base/limit mask (bits [14:0], up to 128 MB)
 IFD_MAX_SECTION_OFFSET = 0x1000     # Descriptor occupies first 4 KB of SPI
 
 class FitType(IntEnum):
@@ -178,46 +178,93 @@ def parse_flash_descriptor(data: bytes) -> Optional[int]:
     # ── 4) Read all region descriptors (FLREG0–FLREGn) ───────────────────
     #    Typical count: 4 regions (BIOS, ME, GbE, PDR)
     #    We read up to 8 to be future-proof.
-    regions = []
+    #    Unprogrammed slots contain 0x00000000 or 0xFFFFFFFF.
+    _UNPROGRAMMED = {0x00000000, 0xFFFFFFFF}
+    regions: List[tuple] = []
     for i in range(8):
         reg_off = frba + i * 4
         if reg_off + 4 > min(len(data), IFD_MAX_SECTION_OFFSET):
             break
         flreg = struct.unpack_from('<I', data, reg_off)[0]
-        base_4k  = (flreg >> FLREG_BASE_SHIFT) & FLREG_MASK
-        limit_4k = flreg & FLREG_MASK
+        if flreg in _UNPROGRAMMED:
+            regions.append((0, 0))  # unpopulated sentinel
+            continue
+        # FLREGx layout per Intel spec:
+        #   bits [14:0]  = Region Base  (4 KB units)
+        #   bits [30:16] = Region Limit (4 KB units)
+        base_4k  = flreg & FLREG_MASK
+        limit_4k = (flreg >> FLREG_BASE_SHIFT) & FLREG_MASK
         regions.append((base_4k, limit_4k))
 
-    # ── 5) Validate regions ──────────────────────────────────────────────
-    #    Check for zero-size or overlapping regions (skip undefined ones).
+    # ── 5) Validate BIOS region (FLREG0) — the only region we require ────
+    if len(regions) == 0:
+        return None
+
+    bios_base_4k, bios_limit_4k = regions[0]
+    if bios_base_4k == 0 and bios_limit_4k == 0:
+        return None  # BIOS region not defined
+    if bios_base_4k > bios_limit_4k:
+        return None  # BIOS region has negative size
+    bios_end = (bios_limit_4k + 1) * 4096
+    if bios_end > 0x1_0000_0000:
+        return None  # exceeds 4 GB address space
+
+    # ── 6) Soft-validate remaining regions (warn, don't reject) ──────────
     for i, (base, limit) in enumerate(regions):
         if base == 0 and limit == 0:
-            continue  # region not populated
-        if base >= limit:
-            return None  # malformed: zero/negative size
+            continue  # unpopulated
+        if base > limit:
+            warnings.warn(
+                f"IFD FLREG{i}: base (0x{base:04X}) > limit (0x{limit:04X}); "
+                f"region skipped"
+            )
+            continue
         r_start = base * 4096
-        r_end = (limit + 1) * 4096
+        r_end   = (limit + 1) * 4096
         if r_end > 0x1_0000_0000:
-            return None  # exceeds 4 GB address space
-        # Check for overlap with all preceding regions
+            warnings.warn(
+                f"IFD FLREG{i}: region extends beyond 4 GB; skipped"
+            )
+            continue
+        # Check for overlap with preceding populated regions
         for j in range(i):
             pb, pl = regions[j]
             if pb == 0 and pl == 0:
                 continue
             p_start = pb * 4096
-            p_end = (pl + 1) * 4096
+            p_end   = (pl + 1) * 4096
             if r_start < p_end and p_start < r_end:
-                return None  # overlapping regions
-
-    # ── 6) BIOS region is FLREG0 (index 0) ───────────────────────────────
-    bios_base_4k, bios_limit_4k = regions[0]
-    if bios_base_4k == 0 and bios_limit_4k == 0:
-        return None  # BIOS region not defined
-
-    bios_end = (bios_limit_4k + 1) * 4096
+                warnings.warn(
+                    f"IFD FLREG{i} overlaps FLREG{j}: "
+                    f"[0x{r_start:08X}–0x{r_end:08X}] vs "
+                    f"[0x{p_start:08X}–0x{p_end:08X}]"
+                )
 
     # ── 7) Compute physical base ─────────────────────────────────────────
-    flash_size = max(len(data), bios_end)
+    #    The IFD is only present in full-SPI dumps, so len(data) IS the
+    #    flash size.  The Flash Descriptor tells us where the BIOS region
+    #    lives within SPI, but NOT the total flash size — deriving flash
+    #    size from bios_end alone would be wrong (GbE/PDR may follow BIOS).
+    #
+    #    Cross-validate: if the BIOS region extends beyond len(data), the
+    #    dump is truncated; use the maximum region end across ALL regions
+    #    as a safer lower bound.
+    max_region_end = bios_end
+    for base, limit in regions[1:]:
+        if base == 0 and limit == 0:
+            continue
+        region_end = (limit + 1) * 4096
+        if region_end > max_region_end:
+            max_region_end = region_end
+
+    if max_region_end > len(data):
+        warnings.warn(
+            f"IFD regions extend beyond image end "
+            f"(0x{max_region_end:X} > 0x{len(data):X}); "
+            f"dump may be truncated, using region limit as lower bound"
+        )
+
+    flash_size = max(len(data), max_region_end)
     physical_base = 0x1_0000_0000 - flash_size
 
     return physical_base
@@ -339,8 +386,15 @@ def parse_fit(data: bytes, base_address: int | None = None) -> FitResult:
         type=ftype, checksum=checksum
     )
     
-    has_km = False
-    has_bp = False
+    # ── Boot Guard tracking ──────────────────────────────────────────────
+    # Separate "entry present" from "structure valid" — a FIT entry can
+    # exist as an empty placeholder (all FFs / zeros) while a different
+    # entry of the same type holds valid data.  Final status depends on
+    # the best entry of each type, not the last one seen.
+    km_entry = False
+    bp_entry = False
+    km_valid = False  # at least one KM entry has valid structure
+    bp_valid = False  # at least one BP entry has valid structure
     
     # Parse entries (skip header at index 0)
     for i in range(1, entry_count):
@@ -406,7 +460,7 @@ def parse_fit(data: bytes, base_address: int | None = None) -> FitResult:
             ))
         
         elif tcode == FitType.KM:
-            has_km = True
+            km_entry = True
             # Try to validate the Key Manifest structure at the entry address.
             # A valid KM starts with a non-zero tag/version — all-FF or
             # all-zero means the FIT entry exists but KM was never provisioned.
@@ -416,24 +470,20 @@ def parse_fit(data: bytes, base_address: int | None = None) -> FitResult:
                 if km_off + 8 <= len(data):
                     km_tag = struct.unpack_from('<I', data, km_off)[0]
                     if km_tag not in (0, 0xFFFFFFFF):
-                        has_km = True
-                    else:
-                        has_km = False  # placeholder entry, not real
+                        km_valid = True  # never reset: once valid, stays valid
 
         elif tcode == FitType.BP:
-            has_bp = True
+            bp_entry = True
             bp_phys = entry.address
             if image_base <= bp_phys < image_end:
                 bp_off = bp_phys - image_base
                 if bp_off + 8 <= len(data):
                     bp_tag = struct.unpack_from('<I', data, bp_off)[0]
                     if bp_tag not in (0, 0xFFFFFFFF):
-                        has_bp = True
-                    else:
-                        has_bp = False
+                        bp_valid = True
 
-    result.has_km = has_km
-    result.has_bp = has_bp
+    result.has_km = km_valid
+    result.has_bp = bp_valid
 
     # ══════════════════════════════════════════════════════════════════════
     # Boot Guard status determination.
@@ -446,19 +496,21 @@ def parse_fit(data: bytes, base_address: int | None = None) -> FitResult:
     #
     # Values:
     #   structures_found — valid KM + BP headers at FIT addresses
-    #   entries_present  — FIT entries exist but structures are empty
     #   partial          — only one of KM/BP has a valid structure
+    #   entries_present  — FIT entries exist but structures are empty
     #   not_detected     — no KM/BP FIT entries at all
     # ══════════════════════════════════════════════════════════════════════
-    if has_km and has_bp:
+    if km_valid and bp_valid:
         result.bootguard_status = "structures_found"
-    elif has_km or has_bp:
+    elif km_valid or bp_valid:
         result.bootguard_status = "partial"
+    elif km_entry or bp_entry:
+        result.bootguard_status = "entries_present"
     else:
         result.bootguard_status = "not_detected"
 
-    # Separate flag: were FIT entries present (even if empty)?
-    result.bg_entries_present = has_km or has_bp
+    # Were FIT entries of type KM/BP present (even if empty placeholders)?
+    result.bg_entries_present = km_entry or bp_entry
     
     result.summary = (
         f"FIT: {len(result.entries)} entries, "
