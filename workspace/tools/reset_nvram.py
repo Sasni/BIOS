@@ -62,137 +62,31 @@ from pathlib import Path
 from typing import Optional, List, Tuple
 from dataclasses import dataclass
 
+# Import NVAR parsing from dedicated module
+from nvar_parser import (
+    NVARVariable, NVARStore, NVARParseResult,
+    NVAR_SIGNATURE, NVAR_STATE_VALID,
+    parse_nvar, parse_nvar_entry, find_all_nvar_positions,
+    cluster_nvar_positions, parse_nvar_store,
+)
+NVRAMVariable = NVARVariable  # backward-compatible alias
 
-NVAR_SIGNATURE = b'NVAR'
+
 VSS_SIGNATURES = (b'$VSS', b'VSS2', b'$VSS2')
-
-
-@dataclass
-class NVRAMVariable:
-    """A single UEFI variable found in the NVRAM region.
-
-    AMI Aptio V NVAR entry structure:
-      +0  Signature  (4)  \"NVAR\"
-      +4  TotalSize  (2)  u16 LE — full entry size (header + data)
-      +6  State      (3)  0xFFFFFF = active/valid
-      +9  StoreType  (2)  u16 LE — variable store identifier
-      +11 Name       (var) null-terminated ASCII
-      ??  Data       (var) to end of entry (TotalSize from +4)
-    """
-    offset: int             # offset of \"NVAR\" signature
-    name: str               # variable name
-    total_size: int         # from header field +4
-    state: int              # 0xFFFFFF = active, 0 = deleted
-    store_type: int         # store identifier
-    data_offset: int        # where variable DATA begins
-    data_size: int          # size of variable data
-
-
-def _read_cstring(data: bytes, start: int) -> Tuple[str, int, bytes]:
-    """Read a null-terminated string from data at start.
-    Returns (display_name, offset_after_null, raw_bytes).
-    """
-    end = start
-    while end < len(data) and data[end] not in (0, 0xFF):
-        end += 1
-    raw = data[start:end]
-    # Build display-safe name
-    name = ''.join(chr(b) if 32 <= b < 127 else f'\\x{b:02x}' for b in raw)
-    if len(name) > 40:
-        name = name[:40] + '...'
-    return name, end + 1, raw
-
-
-def _is_readable_name(raw: bytes) -> bool:
-    """Check if raw bytes look like a human-readable variable name."""
-    if len(raw) < 2:
-        return False
-    alpha = sum(1 for b in raw if 65 <= b <= 90 or 97 <= b <= 122)
-    return alpha >= 2 and alpha >= len(raw) * 0.5
 
 
 def parse_nvram_variables(data: bytes) -> Tuple[List[NVRAMVariable], int, int]:
     """Parse all NVAR variables in a BIOS dump.
 
+    (Backward-compatible wrapper — delegates to ``nvar_parser.parse_nvar()``.)
+
     Returns:
         (variables, region_start, region_end)
-        region_start/end are the bounds of the NVRAM area.
-        Returns empty list if no NVAR region found.
     """
-    # Find all NVAR positions using fast C-level search
-    positions = []
-    pos = data.find(NVAR_SIGNATURE)
-    while pos != -1:
-        positions.append(pos)
-        pos = data.find(NVAR_SIGNATURE, pos + 1)
-
-    if not positions:
+    result = parse_nvar(data)
+    if not result.found:
         return [], 0, 0
-
-    # Cluster nearby positions to find NVRAM regions (primary + optional backup).
-    # AMI often keeps two copies — both must be reset.
-    sorted_pos = sorted(positions)
-    clusters = [[sorted_pos[0]]]
-    for p in sorted_pos[1:]:
-        if p - clusters[-1][-1] <= 0x2000:
-            clusters[-1].append(p)
-        else:
-            clusters.append([p])
-
-    # Process all significant clusters (>= 3 NVAR entries).
-    # Skip tiny isolated references.
-    significant = [c for c in clusters if len(c) >= 3]
-    if not significant:
-        return [], 0, 0
-
-    region_start = min(c[0] for c in significant)
-    region_end = max(c[-1] + 0x100 for c in significant)
-
-    # Parse each NVAR entry using the actual header structure:
-    #   NVAR(4) + TotalSize:u16(2) + State:u24(3) + StoreType:u16(2) + name + data
-    variables = []
-    for cluster_idx, cluster in enumerate(significant):
-        for pos in sorted(cluster):
-            if pos + 11 > len(data):
-                continue
-
-            total_size = struct.unpack_from('<H', data, pos + 4)[0]
-            state = (data[pos + 6] << 16) | (data[pos + 7] << 8) | data[pos + 8]
-            store_type = struct.unpack_from('<H', data, pos + 9)[0]
-
-            # Name at +11, null-terminated
-            name, name_end, name_raw = _read_cstring(data, pos + 11)
-            if not _is_readable_name(name_raw):
-                name = f"var_0x{pos:04X}"
-
-            # Data starts right after the name's null terminator
-            data_offset = name_end
-
-            # TotalSize from header is the authoritative size to next entry.
-            # For the last variable in a cluster, TotalSize still gives the
-            # correct end — no FF-scan heuristic needed.
-            if total_size > 0 and pos + total_size <= len(data):
-                data_end = pos + total_size
-            else:
-                # Only reached for corrupted entries with invalid TotalSize
-                data_end = data_offset
-
-            data_size = max(0, data_end - data_offset)
-
-            prefix = f"[store{cluster_idx}] " if len(significant) > 1 else ""
-            variables.append(NVRAMVariable(
-                offset=pos,
-                name=prefix + name,
-                total_size=total_size,
-                state=state,
-                store_type=store_type,
-                data_offset=data_offset,
-                data_size=data_size,
-            ))
-
-    # Multiple stores (primary + backup) are handled transparently —
-    # each variable gets a [storeN] prefix in its name.
-    return variables, region_start, region_end
+    return result.variables, result.region_start, result.region_end
 
 
 def reset_variable_data(data: bytearray, variables: List[NVRAMVariable],

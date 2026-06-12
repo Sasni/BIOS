@@ -212,6 +212,15 @@ def api_analyze(relpath):
         except (json.JSONDecodeError, Exception):
             nvram_data = {"text": nvram_raw["stdout"]}
 
+    # ── nvar_parser.py: detailed NVAR variable listing ──
+    nvar_data = None
+    nvar_raw = _run_tool("nvar_parser.py", "--json", str(abs_path))
+    if nvar_raw.get("stdout"):
+        try:
+            nvar_data = json.loads(nvar_raw["stdout"])
+        except (json.JSONDecodeError, Exception):
+            nvar_data = {"text": nvar_raw["stdout"]}
+
     return jsonify({
         "file": relpath,
         "sha256": _sha256(str(abs_path)),
@@ -223,6 +232,7 @@ def api_analyze(relpath):
         },
         "fit": fit_data,
         "nvram": nvram_data,
+        "nvar": nvar_data,
     })
 
 
