@@ -125,7 +125,7 @@ def parse_fit(data: bytes, base_address: int = 0) -> FitResult:
     
     # Parse header entry
     header_data = data[fit_offset:fit_offset + 16]
-    address, size, version, ftype, checksum = struct.unpack('<QIBBB', header_data[:16])
+    address, size, version, ftype, checksum = struct.unpack('<QIHBB', header_data[:16])
     
     # Verify signature
     if address != FIT_SIGNATURE:
@@ -152,7 +152,7 @@ def parse_fit(data: bytes, base_address: int = 0) -> FitResult:
     for i in range(1, entry_count):
         entry_offset = fit_offset + i * 16
         entry_data = data[entry_offset:entry_offset + 16]
-        addr, sz, ver, typ, chk = struct.unpack('<QIBBB', entry_data[:16])
+        addr, sz, ver, typ, chk = struct.unpack('<QIHBB', entry_data[:16])
         
         entry = FitEntry(
             address=addr, size=sz, version=ver,
