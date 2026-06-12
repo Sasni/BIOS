@@ -194,6 +194,8 @@ async function loadFileInfo(infoObj) {
     // If we already have the info (from upload), use it; otherwise fetch
     if (infoObj && infoObj.sha256) {
         renderFileInfo(area, infoObj);
+        // Re-render cached analysis if available (e.g., returning from another tab)
+        reRenderAnalysis();
         return;
     }
     const relpath = typeof infoObj === 'string' ? infoObj : (infoObj && infoObj.relpath);
@@ -204,8 +206,16 @@ async function loadFileInfo(infoObj) {
         const info = await resp.json();
         if (info.error) { area.innerHTML = `<div class="error-state">${info.error}</div>`; return; }
         renderFileInfo(area, info);
+        reRenderAnalysis();
     } catch (e) {
         area.innerHTML = `<div class="error-state">${e.message}</div>`;
+    }
+}
+
+function reRenderAnalysis() {
+    // Re-render the analysis section from cached data (survives tab switches).
+    if (state.analysisData) {
+        renderAnalysisIntoInfo(state.analysisData);
     }
 }
 
@@ -467,28 +477,91 @@ function renderAnalysisIntoInfo(data) {
         html += `</div></div>`;
     }
 
-    // ── NVRAM status (informational only — reset is in Fix tab) ──────────
-    if (p && p.nvram_store && p.nvram_store.detected) {
-        const nv = p.nvram_store;
-        html += `<div style="padding:8px 0;font-size:13px;">`;
-        html += `NVRAM: ${nv.nvars_found} entries at 0x${(nv.region_start||0).toString(16).toUpperCase()}`;
-        html += `</div>`;
+    // ── NVRAM (from reset_nvram --json) ──────────────────────────────────
+    const nv = data.nvram;
+    if (nv && nv.nvram && nv.nvram.detected) {
+        const nd = nv.nvram;
+        html += `<details open class="mb-2"><summary class="text-sm" style="font-weight:600;cursor:pointer;padding:4px 0;">NVRAM — ${nd.formats.join(', ')}</summary>`;
+        html += `<div style="font-size:12px;padding:4px 8px;">`;
+
+        if (nd.nvar) {
+            html += `<div style="margin-bottom:6px;"><b>NVAR (AMI Aptio V)</b>: ${nd.nvar.variables.toLocaleString()} variables, `;
+            html += `region 0x${(nd.nvar.region_start||0).toString(16).toUpperCase()}-0x${(nd.nvar.region_end||0).toString(16).toUpperCase()} `;
+            html += `(${(nd.nvar.region_size/1024).toFixed(0)} KB)</div>`;
+        }
+        if (nd.vss) {
+            for (const s of nd.vss) {
+                html += `<div style="margin-bottom:4px;"><b>VSS (Insyde H2O)</b>: at 0x${(s.offset||0).toString(16).toUpperCase()}, ${s.size_kb} KB</div>`;
+            }
+        }
+        if (nd.evsa) {
+            for (const s of nd.evsa) {
+                html += `<div style="margin-bottom:4px;"><b>EVSA (AMI)</b>: at 0x${(s.offset||0).toString(16).toUpperCase()}, ${s.size_kb} KB, ${s.variables} variables</div>`;
+            }
+        }
+        if (nd.dead_zones && nd.dead_zones.length) {
+            html += `<div style="margin-bottom:4px;"><b>Dead zones (FPT)</b>: ${nd.dead_zones.length} blocks, ${(nd.dead_zones_total_bytes/1024).toFixed(0)} KB total</div>`;
+        }
+        html += `</div></details>`;
+    } else if (nv && nv.nvram && nv.nvram.note) {
+        html += `<div style="padding:4px 8px;font-size:13px;color:var(--muted);">NVRAM: ${escapeHtml(nv.nvram.note)}</div>`;
     }
 
-    // ── Intel FIT ─────────────────────────────────────────────────────────
-    if (fit && !fit.error) {
-        const fd = fit.data || (fit.stdout ? {text: fit.stdout} : null);
-        if (fd && fd.entries && fd.entries.length) {
-            html += `<details class="mb-2"><summary class="text-sm" style="font-weight:600;cursor:pointer;padding:4px 0;">Intel FIT (${fd.entries.length} entries)</summary>`;
-            html += `<div style="max-height:300px;overflow-y:auto;font-size:12px;">`;
-            for (const e of fd.entries.slice(0, 50)) {
-                html += `<div class="flex" style="justify-content:space-between;padding:1px 8px;border-top:1px solid var(--border);">
-                    <span style="font-family:monospace;">0x${(e.address||0).toString(16).toUpperCase().padStart(8,'0')}</span>
-                    <span>${escapeHtml(String(e.type||'?'))}</span>
-                    <span class="text-muted">${escapeHtml(String(e.info||'').slice(0,60))}</span></div>`;
+    // ── Intel FIT (from fit_parser --json) ─────────────────────────────────
+    if (fit && fit.found) {
+        html += `<details open class="mb-2"><summary class="text-sm" style="font-weight:600;cursor:pointer;padding:4px 0;">Intel FIT — ${fit.entries_count} entries</summary>`;
+        html += `<div style="font-size:12px;padding:4px 8px;">`;
+
+        // Microcodes
+        if (fit.microcodes && fit.microcodes.length) {
+            html += `<div style="margin-bottom:4px;"><b>Microcodes (${fit.microcodes.length})</b></div>`;
+            html += `<div style="max-height:200px;overflow-y:auto;margin-bottom:8px;">`;
+            for (const mc of fit.microcodes) {
+                html += `<div class="flex" style="justify-content:space-between;padding:1px 8px;border-top:1px solid var(--border);font-family:monospace;">`;
+                html += `<span>CPUID ${mc.cpuid}</span>`;
+                html += `<span>Rev ${mc.revision}</span>`;
+                html += `<span>${mc.date}</span>`;
+                html += `<span class="text-muted">${mc.size_formatted}</span>`;
+                html += `</div>`;
+            }
+            html += `</div>`;
+        }
+
+        // ACMs
+        if (fit.acms && fit.acms.length) {
+            html += `<div style="margin-bottom:4px;"><b>Startup ACMs (${fit.acms.length})</b></div>`;
+            for (const acm of fit.acms) {
+                html += `<div style="font-family:monospace;padding:1px 8px;">${acm.address} — ${acm.size_bytes.toLocaleString()} B</div>`;
+            }
+        }
+
+        // Boot Guard
+        if (fit.bootguard) {
+            const bg = fit.bootguard;
+            let bgColor = bg.status === 'structures_found' ? '#e8b739' : bg.status === 'partial' ? '#e8b739' : '#6c6';
+            html += `<div style="margin-top:8px;padding:6px 8px;background:var(--panel);border-radius:4px;">`;
+            html += `<b>Boot Guard</b>: <span style="color:${bgColor};font-weight:600;">${bg.status.toUpperCase()}</span>`;
+            if (bg.has_km) html += ` &middot; KM`;
+            if (bg.has_bp) html += ` &middot; BP`;
+            if (bg.needs_fpf_check) html += `<br><small class="text-muted">Final status requires PCH fuse check (FPF registers)</small>`;
+            if (bg.entries_present && !bg.has_km && !bg.has_bp) html += `<br><small class="text-muted">FIT entries present but structures are empty (not provisioned)</small>`;
+            html += `</div>`;
+        }
+
+        // All entries (collapsed)
+        if (fit.entries && fit.entries.length) {
+            html += `<details style="margin-top:6px;"><summary class="text-sm text-muted" style="cursor:pointer;">All FIT entries (${fit.entries.length})</summary>`;
+            html += `<div style="max-height:200px;overflow-y:auto;">`;
+            for (const e of fit.entries) {
+                html += `<div class="flex" style="justify-content:space-between;padding:1px 8px;border-top:1px solid var(--border);font-family:monospace;font-size:11px;">
+                    <span>[${e.index}] ${e.type_name}</span>
+                    <span>0x${(e.address||0).toString(16).toUpperCase().padStart(16,'0')}</span>
+                    <span class="text-muted">${e.checksum_valid ? 'chk ok' : ''}</span></div>`;
             }
             html += `</div></details>`;
         }
+
+        html += `</div></details>`;
     }
 
     // ── Raw JSON (collapsed) ──────────────────────────────────────────────

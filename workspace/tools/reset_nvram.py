@@ -190,9 +190,8 @@ def parse_nvram_variables(data: bytes) -> Tuple[List[NVRAMVariable], int, int]:
                 data_size=data_size,
             ))
 
-    if len(significant) > 1:
-        print(f"[*] Found {len(significant)} NVRAM stores (primary + backup)")
-
+    # Multiple stores (primary + backup) are handled transparently —
+    # each variable gets a [storeN] prefix in its name.
     return variables, region_start, region_end
 
 
@@ -878,6 +877,8 @@ Examples:
     parser.add_argument("--force", action="store_true", help="Skip confirmation")
     parser.add_argument("--scan-dead", action="store_true",
                        help="Force scan for dead (all-zero) NVRAM zones even without FPT/VSS evidence")
+    parser.add_argument("--json", action="store_true",
+                       help="Output detection results as JSON (for GUI, use with --list)")
 
     args = parser.parse_args()
 
@@ -887,8 +888,9 @@ Examples:
         sys.exit(1)
 
     data = bytearray(input_path.read_bytes())
-    print(f"[*] Input: {input_path.name} ({len(data):,} bytes)")
-    print(f"    SHA256: {hashlib.sha256(data).hexdigest()}")
+    if not args.json:
+        print(f"[*] Input: {input_path.name} ({len(data):,} bytes)")
+        print(f"    SHA256: {hashlib.sha256(data).hexdigest()}")
 
     # Load donor if provided
     donor_data = None
@@ -940,7 +942,61 @@ Examples:
         if not _insyde_evidence and dead_zones:
             print("[*] --scan-dead: forced dead zone scan (no Insyde FPT/VSS evidence)")
 
-    # ── Phase 2: Report findings ─────────────────────────────────────────────
+    # ── Phase 2: JSON output (early exit) ──────────────────────────────────────
+
+    if args.json:
+        import json as _json
+        out = {
+            "file": str(input_path),
+            "file_size": len(data),
+            "sha256": hashlib.sha256(data).hexdigest(),
+            "nvram": {
+                "detected": bool(variables) or bool(vss_stores) or bool(evsa_stores) or bool(dead_zones),
+                "formats": [],
+            },
+        }
+        nv = out["nvram"]
+        if variables:
+            nv["formats"].append("NVAR (AMI Aptio V)")
+            nv["nvar"] = {
+                "variables": len(variables),
+                "region_start": nvar_start,
+                "region_end": nvar_end,
+                "region_size": nvar_end - nvar_start,
+                "stores": len(set(v.store_type for v in variables)),
+            }
+        if vss_stores:
+            nv["formats"].append("VSS (Insyde H2O)")
+            nv["vss"] = [
+                {"offset": s.offset, "size": s.size, "size_kb": s.size // 1024}
+                for s in vss_stores
+            ]
+        if evsa_stores:
+            nv["formats"].append("EVSA (AMI)")
+            nv["evsa"] = [
+                {"offset": s.offset, "size": s.size, "size_kb": s.size // 1024,
+                 "variables": s.variable_count}
+                for s in evsa_stores
+            ]
+        if dead_zones:
+            nv["formats"].append("FPT dead zones (Insyde H2O)")
+            nv["dead_zones"] = [
+                {"start": s, "end": e, "size": e - s}
+                for s, e in dead_zones
+            ]
+            nv["dead_zones_total_bytes"] = sum(e - s for s, e in dead_zones)
+        if fpt_entries:
+            nv["fpt_entries"] = [
+                {"signature": sig, "value": val}
+                for sig, _, val in fpt_entries
+            ]
+        if not nv["detected"]:
+            nv["note"] = "No supported NVRAM format found. Try --donor for recovery."
+
+        print(_json.dumps(out, indent=2, default=str))
+        return
+
+    # ── Phase 3: Report findings (text) ────────────────────────────────────────
 
     found_any = bool(variables) or bool(vss_stores) or bool(evsa_stores) or bool(dead_zones)
     if not found_any:
