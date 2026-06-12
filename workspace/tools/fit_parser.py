@@ -92,37 +92,90 @@ class FitResult:
         if self.acms is None:
             self.acms = []
 
-def parse_fit(data: bytes, base_address: int = 0) -> FitResult:
+def parse_fit(data: bytes, base_address: int | None = None) -> FitResult:
     """
     Parse Intel FIT from firmware image.
-    
+
     The FIT is located in the last 4KB of the 4GB address space.
     In a firmware dump, the FIT pointer is at offset (size - 0x40).
-    
+
     Args:
         data: Firmware image bytes
-        base_address: Base physical address where image is mapped (default 0)
+        base_address: Base physical address where image is mapped.
+            None (default): auto-detect — tries standard SPI mapping
+            (4GB - image_size) first, then falls back to 0 (linear dump).
+
+    Limitations:
+        Auto-detection uses ``base = 0x1_0000_0000 - len(data)`` which
+        assumes the firmware image occupies the top of the 4 GB SPI address
+        space.  This is correct for standard 8–16 MB SPI dumps (Haswell
+        through Comet Lake), but can fail for:
+
+        * 32+ MB images (Alder Lake+) where the Flash Descriptor may
+          place the BIOS region at a different base.
+        * Images that do NOT include the full SPI flash (e.g., BIOS-region-
+          only dumps).  For those the 4 GB formula over-estimates the base
+          and the FIT pointer falls outside the image.
+
+        The proper long-term fix is to parse the Flash Descriptor (offset 0x10
+        in the SPI image) to read the actual base addresses of each region
+        (FLREG0–FLREGn).  Until then, pass an explicit ``--base`` for
+        non‑standard dumps.
     """
     result = FitResult()
-    
+
     if len(data) < 0x48:
         return result
-    
+
     # FIT pointer is at offset (size - 0x40) - 64-bit physical address
     fit_ptr_offset = len(data) - 0x40
     fit_phys = struct.unpack_from('<Q', data, fit_ptr_offset)[0]
-    
-    # Image maps to physical [base_address, base_address + len(data))
-    image_base = base_address
-    image_end = base_address + len(data)
-    
-    if fit_phys < image_base or fit_phys >= image_end:
+
+    # Reject obviously invalid FIT pointers
+    if fit_phys == 0 or fit_phys == 0xFFFFFFFFFFFFFFFF:
         return result
-    
-    fit_offset = fit_phys - image_base
-    if fit_offset + 16 > len(data):
-        return result
-    
+
+    # Auto-detect base address if not provided.
+    #
+    # The standard SPI flash layout places the firmware at the top of the
+    # 4 GB address space:  base = 0x1_0000_0000 - image_size.
+    #
+    # This works for 8 MB  (0xFF800000) and 16 MB (0xFF000000) dumps.
+    # For newer platforms (32 MB → 0xFE000000) the Flash Descriptor may
+    # remap regions — see the Limitations section in the docstring above.
+    if base_address is None:
+        bases = [0x100000000 - len(data), 0]
+        candidates = []
+        for b in bases:
+            image_base = b
+            image_end = b + len(data)
+            if image_base <= fit_phys < image_end:
+                fit_off = fit_phys - image_base
+                if fit_off + 16 <= len(data):
+                    # Quick sanity: check for FIT signature at candidate offset
+                    sig_check = struct.unpack_from('<Q', data, fit_off)[0]
+                    if sig_check == FIT_SIGNATURE:
+                        candidates.append((b, fit_off))
+        if candidates:
+            base_address, fit_offset = candidates[0]
+        elif fit_phys < len(data):
+            # Fallback: treat fit_phys as a direct file offset (base=0)
+            base_address = 0
+            fit_offset = fit_phys
+        else:
+            return result
+    else:
+        # Image maps to physical [base_address, base_address + len(data))
+        image_base = base_address
+        image_end = base_address + len(data)
+
+        if fit_phys < image_base or fit_phys >= image_end:
+            return result
+
+        fit_offset = fit_phys - image_base
+        if fit_offset + 16 > len(data):
+            return result
+
     # Parse header entry
     header_data = data[fit_offset:fit_offset + 16]
     address, size, version, ftype, checksum = struct.unpack('<QIHBB', header_data[:16])
@@ -207,16 +260,27 @@ def parse_fit(data: bytes, base_address: int = 0) -> FitResult:
     else:
         result.bootguard_status = "not_detected"
     
-    result._build_summary()
+    result.summary = (
+        f"FIT: {len(result.entries)} entries, "
+        f"{len(result.microcodes)} microcodes, "
+        f"{len(result.acms)} ACMs, "
+        f"BootGuard: {result.bootguard_status}"
+    )
     return result
 
 def parse_fit_legacy(data: bytes) -> FitResult:
-    """Legacy parser for firmware dumps mapped at 0 (common in SPI dumps)."""
-    # For SPI dumps, the image is typically mapped at 0xFFFFxxxx region
-    # Try standard location at 4GB - size
-    size = len(data)
-    image_base = 0x100000000 - size
-    return parse_fit(data, image_base)
+    """Parse FIT with standard SPI mapping: base = 4 GB - image_size.
+
+    Kept for backward compatibility.  Prefer the auto-detecting
+    ``parse_fit(data)`` (base_address=None) for new code.
+
+    Limitation:
+        Assumes the image occupies the top of the 4 GB SPI address
+        space.  Works for 8–16 MB dumps; may need an explicit base for
+        32+ MB images (Alder Lake+) or BIOS-region-only dumps.
+        See ``parse_fit`` docstring for details.
+    """
+    return parse_fit(data, 0x100000000 - len(data))
 
 # ─── CLI ──────────────────────────────────────────────────────────────────
 
@@ -227,8 +291,8 @@ def main():
     parser = argparse.ArgumentParser(description="Intel FIT Table Parser")
     parser.add_argument("input", help="Firmware image file (.bin/.rom)")
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
-    parser.add_argument("--base", type=lambda x: int(x, 0), default=0, 
-                       help="Base physical address (default: auto-detect)")
+    parser.add_argument("--base", type=lambda x: int(x, 0), default=None,
+                       help="Base physical address (default: auto-detect 4GB mapping)")
     
     args = parser.parse_args()
     
