@@ -60,7 +60,7 @@
 - [ ] Naprawa tylko uszkodzonych zmiennych (zamiast czyszczenia całego store)
 
 ## Narzędzia
-- [ ] **Flash Descriptor parser** — parsowanie FD (offset 0x10) → FLREG0–FLREGn
+- [x] **Flash Descriptor parser** — parsowanie FD (offset 0x10) → FLREG0–FLREGn ✅ (zaimplementowano w `fit_parser.py`)
   - potrzebne do poprawnego `base_address` dla FIT na 32+ MB (Alder Lake+)
   - przydatne do wykrywania regionów BIOS/ME/GBE w dumpach
 - [ ] VSS2 — dedykowany parser (obecnie VSS i VSS2 dzielą ścieżkę)

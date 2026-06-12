@@ -6,6 +6,7 @@ Parses Intel FIT from firmware images for microcode, ACM, Boot Guard detection.
 """
 
 import struct
+import warnings
 from typing import List, Dict, Optional, Any
 from dataclasses import dataclass, field
 from enum import IntEnum
@@ -13,6 +14,14 @@ from enum import IntEnum
 # FIT Entry structure (16 bytes)
 FIT_ENTRY_SIZE = 16
 FIT_SIGNATURE = 0x2020205F5449465F  # "_FIT_   "
+
+# Intel Flash Descriptor (IFD) constants
+FLVALSIG = 0x0FF0A55A               # Flash Valid Signature at SPI offset 0x10
+IFD_FCBA_OFFSET = 0x30              # FCBA field: SPI offset (descriptor +0x20)
+IFD_FRBA_OFFSET = 0x34              # FRBA field: SPI offset (descriptor +0x24)
+FLREG_BASE_SHIFT = 16               # FLREG0: base in bits [31:16]
+FLREG_MASK = 0x7FFF                 # 15-bit base/limit mask (supports up to 128 MB regions)
+IFD_MAX_SECTION_OFFSET = 0x1000     # Descriptor occupies first 4 KB of SPI
 
 class FitType(IntEnum):
     HEADER = 0x00
@@ -103,6 +112,117 @@ class FitResult:
     bg_entries_present: bool = False  # FIT entries exist (may be empty placeholders)
     summary: str = ""
 
+def parse_flash_descriptor(data: bytes) -> Optional[int]:
+    """Parse Intel Flash Descriptor to determine physical base address.
+
+    Detects the IFD via FLVALSIG (0x0FF0A55A) at SPI offset 0x10,
+    validates the descriptor map and region table consistency, then
+    computes the physical base address of ``data[0]`` under the standard
+    top-of-4GB SPI mapping.
+
+    Returns None if the IFD is absent, inconsistent, or contains
+    invalid BIOS region data.
+    """
+
+    # Minimum size: FLVALSIG at 0x10 + descriptor map + region table
+    if len(data) < 0x54:
+        return None
+
+    # ── 1) Detect IFD: FLVALSIG at offset 0x10 ───────────────────────────
+    #    Offset 0x00–0x0F is reserved (EC pointer on newer platforms).
+    #    No signature check at offset 0x00 — only FLVALSIG identifies the IFD.
+    if struct.unpack_from('<I', data, 0x10)[0] != FLVALSIG:
+        return None
+
+    # ── 2) Read section base addresses from descriptor map ───────────────
+    #    FCBA  at SPI 0x30  — Flash Component Base Address
+    #    FRBA  at SPI 0x34  — Flash Region Base Address
+    #    FMBA  at SPI 0x38  — Flash Master Base Address
+    #    FISBA at SPI 0x3C  — ICH Strap Base Address
+    #    FMSBA at SPI 0x40  — MCH Strap Base Address
+    #
+    #    Each is a 32-bit field. The low 8 bits carry the section offset
+    #    in 4-byte increments from the descriptor base (SPI 0x00).
+
+    def _read_section_offset(offset: int) -> int:
+        """Read a section base address field and return byte offset in SPI."""
+        raw = struct.unpack_from('<I', data, offset)[0]
+        return (raw & 0xFF) * 4
+
+    fcba  = _read_section_offset(IFD_FCBA_OFFSET)
+    frba  = _read_section_offset(IFD_FRBA_OFFSET)
+    fmba  = _read_section_offset(0x38)
+    fisba = _read_section_offset(0x3C)
+    fmsba = _read_section_offset(0x40)
+
+    # ── 3) Validate section offsets ──────────────────────────────────────
+    #    All sections must lie within the first 4 KB (the descriptor page).
+    #    Offsets should be ordered sensibly and not overlap wildly.
+    sections = {
+        "FCBA": fcba, "FRBA": frba, "FMBA": fmba,
+        "FISBA": fisba, "FMSBA": fmsba,
+    }
+    for name, off in sections.items():
+        if off == 0:
+            # Zero offset for optional sections (FMBA, FISBA, FMSBA) is OK;
+            # but FCBA and FRBA are mandatory.
+            if name in ("FCBA", "FRBA"):
+                return None
+        elif not (0x30 <= off < IFD_MAX_SECTION_OFFSET):
+            return None
+
+    # Ensure region table doesn't overflow the descriptor
+    if frba + 4 > IFD_MAX_SECTION_OFFSET:
+        return None
+
+    # ── 4) Read all region descriptors (FLREG0–FLREGn) ───────────────────
+    #    Typical count: 4 regions (BIOS, ME, GbE, PDR)
+    #    We read up to 8 to be future-proof.
+    regions = []
+    for i in range(8):
+        reg_off = frba + i * 4
+        if reg_off + 4 > min(len(data), IFD_MAX_SECTION_OFFSET):
+            break
+        flreg = struct.unpack_from('<I', data, reg_off)[0]
+        base_4k  = (flreg >> FLREG_BASE_SHIFT) & FLREG_MASK
+        limit_4k = flreg & FLREG_MASK
+        regions.append((base_4k, limit_4k))
+
+    # ── 5) Validate regions ──────────────────────────────────────────────
+    #    Check for zero-size or overlapping regions (skip undefined ones).
+    for i, (base, limit) in enumerate(regions):
+        if base == 0 and limit == 0:
+            continue  # region not populated
+        if base >= limit:
+            return None  # malformed: zero/negative size
+        r_start = base * 4096
+        r_end = (limit + 1) * 4096
+        if r_end > 0x1_0000_0000:
+            return None  # exceeds 4 GB address space
+        # Check for overlap with all preceding regions
+        for j in range(i):
+            pb, pl = regions[j]
+            if pb == 0 and pl == 0:
+                continue
+            p_start = pb * 4096
+            p_end = (pl + 1) * 4096
+            if r_start < p_end and p_start < r_end:
+                return None  # overlapping regions
+
+    # ── 6) BIOS region is FLREG0 (index 0) ───────────────────────────────
+    bios_base_4k, bios_limit_4k = regions[0]
+    if bios_base_4k == 0 and bios_limit_4k == 0:
+        return None  # BIOS region not defined
+
+    bios_end = (bios_limit_4k + 1) * 4096
+
+    # ── 7) Compute physical base ─────────────────────────────────────────
+    flash_size = max(len(data), bios_end)
+    physical_base = 0x1_0000_0000 - flash_size
+
+    return physical_base
+
+
 def parse_fit(data: bytes, base_address: int | None = None) -> FitResult:
     """
     Parse Intel FIT from firmware image.
@@ -111,27 +231,23 @@ def parse_fit(data: bytes, base_address: int | None = None) -> FitResult:
     In a firmware dump, the FIT pointer is at offset (size - 0x40).
 
     Args:
-        data: Firmware image bytes
+        data: Firmware image bytes.
         base_address: Base physical address where image is mapped.
-            None (default): auto-detect — tries standard SPI mapping
-            (4GB - image_size) first, then falls back to 0 (linear dump).
+            None (default): auto-detect — tries in order:
+            1. Parse the Intel Flash Descriptor (IFD) at offset 0x10 to
+               read the BIOS region base/limit from FLREG0.  Works for
+               full-SPI dumps (8–64 MB) on all platforms.
+            2. Assume standard SPI mapping at top of 4 GB
+               (base = 4 GB - image_size).  Correct for most full-SPI
+               dumps.
+            3. Fall back to base = 0 (linear dump).
 
     Limitations:
-        Auto-detection uses ``base = 0x1_0000_0000 - len(data)`` which
-        assumes the firmware image occupies the top of the 4 GB SPI address
-        space.  This is correct for standard 8–16 MB SPI dumps (Haswell
-        through Comet Lake), but can fail for:
-
-        * 32+ MB images (Alder Lake+) where the Flash Descriptor may
-          place the BIOS region at a different base.
-        * Images that do NOT include the full SPI flash (e.g., BIOS-region-
-          only dumps).  For those the 4 GB formula over-estimates the base
-          and the FIT pointer falls outside the image.
-
-        The proper long-term fix is to parse the Flash Descriptor (offset 0x10
-        in the SPI image) to read the actual base addresses of each region
-        (FLREG0–FLREGn).  Until then, pass an explicit ``--base`` for
-        non‑standard dumps.
+        The IFD-based detection (method 1) requires a full-SPI dump that
+        includes the Flash Descriptor at the beginning of the image.
+        BIOS-region-only dumps do not contain the IFD and fall through
+        to methods 2/3, which may produce an incorrect base.  For those,
+        pass an explicit ``--base``.
     """
     result = FitResult()
 
@@ -146,20 +262,21 @@ def parse_fit(data: bytes, base_address: int | None = None) -> FitResult:
     if fit_phys == 0 or fit_phys == 0xFFFFFFFFFFFFFFFF:
         return result
 
-    # Auto-detect base address if not provided.
-    #
-    # The standard SPI flash layout places the firmware at the top of the
-    # 4 GB address space:  base = 0x1_0000_0000 - image_size.
-    #
-    # This works for 8 MB  (0xFF800000) and 16 MB (0xFF000000) dumps.
-    # For newer platforms (32 MB → 0xFE000000) the Flash Descriptor may
-    # remap regions — see the Limitations section in the docstring above.
     # ── Resolve base_address ──────────────────────────────────────────────────
 
     explicit_base = base_address is not None
 
     if base_address is None:
-        # Auto-detect: try standard SPI mapping first, then linear dump.
+        # Phase 1: Try Intel Flash Descriptor (IFD) — precise for full-SPI dumps
+        ifd_base = parse_flash_descriptor(data)
+        if ifd_base is not None:
+            if ifd_base <= fit_phys < ifd_base + len(data):
+                base_address = ifd_base
+                fit_offset = fit_phys - ifd_base
+            # else: IFD base doesn't contain FIT pointer — fall through to Phase 2
+
+    if base_address is None:
+        # Phase 2: Try standard heuristics
         bases = [0x100000000 - len(data), 0]
         candidates = []
         for b in bases:
@@ -355,7 +472,9 @@ def parse_fit_legacy(data: bytes) -> FitResult:
     """Parse FIT with standard SPI mapping: base = 4 GB - image_size.
 
     Kept for backward compatibility.  Prefer the auto-detecting
-    ``parse_fit(data)`` (base_address=None) for new code.
+    ``parse_fit(data)`` (base_address=None) for new code — it uses
+    Flash Descriptor (IFD) parsing for full-SPI dumps and falls back
+    to heuristics for BIOS-region-only dumps.
 
     Limitation:
         Assumes the image occupies the top of the 4 GB SPI address
