@@ -194,8 +194,23 @@ def api_analyze(relpath):
         except (json.JSONDecodeError, Exception) as e:
             parse_data = {"error": str(e)}
 
-    # ── fit_parser.py: text stdout ──
-    fit_result = _run_tool("fit_parser.py", str(abs_path))
+    # ── fit_parser.py: JSON output ──
+    fit_data = None
+    fit_raw = _run_tool("fit_parser.py", "--json", str(abs_path))
+    if fit_raw.get("stdout"):
+        try:
+            fit_data = json.loads(fit_raw["stdout"])
+        except (json.JSONDecodeError, Exception):
+            fit_data = {"text": fit_raw["stdout"]}
+
+    # ── reset_nvram.py: NVRAM detection (list + json) ──
+    nvram_data = None
+    nvram_raw = _run_tool("reset_nvram.py", "--list", "--json", "--force", str(abs_path))
+    if nvram_raw.get("stdout"):
+        try:
+            nvram_data = json.loads(nvram_raw["stdout"])
+        except (json.JSONDecodeError, Exception):
+            nvram_data = {"text": nvram_raw["stdout"]}
 
     return jsonify({
         "file": relpath,
@@ -206,7 +221,8 @@ def api_analyze(relpath):
             "data": parse_data,
             "exit_code": parse_result.get("exit_code", -1),
         },
-        "fit": fit_result,
+        "fit": fit_data,
+        "nvram": nvram_data,
     })
 
 

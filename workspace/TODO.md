@@ -17,6 +17,18 @@
 - [x] FIT parser: auto-detekcja base_address (zamiast `base=0`)
 - [x] FIT parser: fix format string `<QIHBB` (version = uint16)
 - [x] FIT parser: usunięty crash na `_build_summary()`
+- [x] FIT parser: rozmiar mikrokodu z nagłówka (offset 0x20 — TotalSize)
+- [x] FIT parser: Boot Guard — walidacja struktur KM/BP, nie tylko wpisów FIT
+
+## FIT parser — dalszy rozwój
+- [ ] FIT checksum validation — pole checksum odczytywane ale nigdy nie weryfikowane
+  - Specyfikacja Intela definiuje algorytm sumy kontrolnej dla każdego wpisu
+  - Warto dodać walidację z raportowaniem błędów (bad checksum)
+- [ ] BIOS_SM / BIOS_SM2 / TPM — typy w enumie FitType, całkowicie ignorowane
+  - BIOS_SM (0x07) — Startup Module
+  - BIOS_SM2 (0x08) — Startup Module v2
+  - TPM (0x0C) — TPM initialization entry
+  - Dodać parsowanie adresów + podstawową walidację
 
 ## Rozpoznawanie formatów
 - [ ] Aptio IV (starszy format)
