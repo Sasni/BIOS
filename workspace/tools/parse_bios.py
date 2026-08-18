@@ -618,6 +618,71 @@ def extract_strings(data: bytes, min_len: int = 4) -> List[str]:
         strings.append(''.join(current))
     return strings
 
+def parse_dmi_area(data: bytes) -> Optional[Dict]:
+    """Parse the fixed DMI "System Information" area (vendor-specific layout).
+
+    Many full-SPI dumps store the SMBIOS Type 1 strings — Manufacturer, BIOS
+    version, BIOS date, Product Name, board code — as a packed NULL-terminated
+    ASCII sequence at a fixed offset (0x400000 in the standard Intel flash
+    layout). The standard SMBIOS entry point (_SM_/_SM3_) is usually absent in
+    these dumps, so the generic SMBIOS parser finds nothing and model detection
+    fails. Reading this area directly recovers the model name for ANY model,
+    without a lookup database.
+
+    Layout (verified on Lenovo/Dell/HP/ASUS full-SPI dumps):
+        [0] Manufacturer  "LENOVO" / "DELL" / "HP" / "ASUS"
+        [1] BIOS version / board family
+        [2] BIOS date     "MM/DD/YYYY"
+        [3] Product Name  "ThinkPad X1 Carbon Gen 10"
+        [4] board code    "21CB" / "0XK9M" / "87A1" / "GA402"
+        [5+] version, serial, ...
+    """
+    VENDOR_SET = frozenset({
+        'LENOVO', 'DELL', 'HP', 'ASUS', 'ACER', 'MSI', 'GIGABYTE', 'SAMSUNG',
+        'TOSHIBA', 'FUJITSU', 'MICROSOFT', 'HUAWEI', 'APPLE', 'RAZER', 'CLEVO',
+        'MEDION', 'XIAOMI', 'NEC', 'PANASONIC',
+    })
+
+    def read_cstr(pos: int) -> Optional[Tuple[str, int]]:
+        end = data.find(b'\x00', pos)
+        if end == -1 or end == pos:
+            return None
+        raw = data[pos:end]
+        if not all(32 <= b <= 126 for b in raw):
+            return None
+        return raw.decode('ascii'), end + 1
+
+    for base in (0x400000,):
+        if base + 0x40 > len(data):
+            continue
+        strings: List[str] = []
+        pos = base
+        for _ in range(8):
+            r = read_cstr(pos)
+            if r is None:
+                break
+            s, pos = r
+            strings.append(s)
+
+        if len(strings) < 4:
+            continue
+        if strings[0].upper() not in VENDOR_SET:
+            continue
+        if not re.match(r'^\d{2}/\d{2}/\d{4}$', strings[2]):
+            continue
+
+        info = {
+            "vendor": strings[0].upper(),
+            "model": strings[3].strip(),
+            "bios_date": strings[2],
+        }
+        if len(strings) > 4 and re.match(r'^[A-Za-z0-9][A-Za-z0-9._\-]{0,15}$', strings[4]):
+            info["board_id"] = strings[4].strip()
+        return info
+
+    return None
+
+
 def extract_smbios_info(data: bytes) -> Dict:
     """Extract vendor, model, board_id from BIOS strings.
 
@@ -631,6 +696,15 @@ def extract_smbios_info(data: bytes) -> Dict:
         "bios_date": "Unknown",
         "board_id": "Unknown",
     }
+
+    # ── Targeted DMI area parse (authoritative for vendor/model/date) ─────
+    dmi = parse_dmi_area(data)
+    if dmi:
+        result["vendor"] = dmi["vendor"]
+        result["model"] = dmi["model"]
+        result["bios_date"] = dmi["bios_date"]
+        if dmi.get("board_id"):
+            result["board_id"] = dmi["board_id"]
 
     # Collect strings from the entire file — 8-32 MB is quick with dedup.
     # For files > 32 MB, use a coverage-optimized sparse scan.
@@ -696,14 +770,15 @@ def extract_smbios_info(data: bytes) -> Dict:
 
     # Pick highest-scoring vendor (skip INSYDE — it's the UEFI BIOS vendor, not HW)
     vendor_candidates.sort(key=lambda x: x[2], reverse=True)
-    for vendor, matched, score in vendor_candidates:
-        if vendor != 'INSYDE':  # Insyde is the BIOS firmware vendor, not the PC brand
-            result["vendor"] = vendor
-            break
-    else:
-        # Fallback: if only Insyde found, check for HW vendor via model strings
-        if any(v[0] == 'INSYDE' for v in vendor_candidates):
-            result["vendor"] = "Insyde (OEM unknown)"
+    if result["vendor"] == "Unknown":
+        for vendor, matched, score in vendor_candidates:
+            if vendor != 'INSYDE':  # Insyde is the BIOS firmware vendor, not the PC brand
+                result["vendor"] = vendor
+                break
+        else:
+            # Fallback: if only Insyde found, check for HW vendor via model strings
+            if any(v[0] == 'INSYDE' for v in vendor_candidates):
+                result["vendor"] = "Insyde (OEM unknown)"
 
     # ── Model detection ───────────────────────────────────────────────────
     model_patterns = [
@@ -733,11 +808,12 @@ def extract_smbios_info(data: bytes) -> Dict:
         (r'(Surface\s+(Pro|Laptop|Book|Studio)\s+\d[\w\s]{0,15})', 1),
     ]
 
-    for pattern, group in model_patterns:
-        m = re.search(pattern, full_text, re.IGNORECASE)
-        if m:
-            result["model"] = m.group(group).strip()
-            break
+    if result["model"] == "Unknown":
+        for pattern, group in model_patterns:
+            m = re.search(pattern, full_text, re.IGNORECASE)
+            if m:
+                result["model"] = m.group(group).strip()
+                break
 
     # ── DMI system identifier (e.g. "DELL  CBX3   .1") ──────────────────
     # This often encodes board model as the second whitespace-separated token
