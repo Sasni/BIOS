@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-ME Clean Patch Template - Applies UBT2-style ME region clean to BIOS dump.
+ME Clean Patch Template - Applies an ME region clean to a BIOS dump.
 Based on real repair patterns from:
 - Lenovo Legion stachurki (8MB BIOS region)
 - Lenovo Legion stachurki2 (16MB full SPI)
@@ -17,7 +17,7 @@ from typing import List, Tuple, Optional
 
 # ─── Configuration ────────────────────────────────────────────────────────
 
-PATCH_NAME = "ME Clean Patch (UBT2-style)"
+PATCH_NAME = "ME Clean Patch"
 DESCRIPTION = "Erase ME region to clean state (0xFF) + update descriptor checksum"
 
 # Patch operations: (offset, size, new_bytes_or_FILL, description)

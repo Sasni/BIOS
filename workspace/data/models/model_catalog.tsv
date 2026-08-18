@@ -1,0 +1,590 @@
+vendor	model	board_id
+Acer	Aspire 5742	LA-5894P
+Acer	Aspire A515-51G	LA-E892P
+Acer	Aspire A515-53K	PIKACHU_KL 18801-1M
+Acer	Aspire A515-57G	LA-M211P
+Acer	Aspire AOD255 DDR2	PAV70 LA-6221P
+Acer	Aspire AV15-51	LA-K092P
+Acer	Aspire E5-571G	LA-B991P
+Acer	Aspire M3-581TG	JM50
+Acer	Aspire One D150	LA-4781P
+Acer	Nitro 5 AN515-55	LA-J891P
+Acer	Nitro AN16-41	DAZGUMB1AD0
+Acer	Nitro AN515-44	LA-K181P
+Acer	Nitro AN515-46	LA-M002P
+Acer	Nitro AN515-54	LA-H501P
+Acer	Nitro AN515-55	LA-J871P
+Acer	Nitro AN515-56	LA-L051P
+Acer	Nitro AN517-42	LA-M002P
+Acer	Nitro AN517-52	LA-K861P
+Acer	Spin SP513-51	16801-1M
+Acer	Swift 3 314-43	LA-L141P
+Acer	Swift SF314-71 Starfish_ADH_Cypress	nb2633a_mb_v2
+Acer	Swift SF314-71 Starfish_ADH_TI	
+Acer	TravelMate Spin B311R-31	NB2372_MB_V6_PCB
+Acer	TravelMate Spin B311R-31	TMB311R-32 Quanta ZBK/ZBKA r1A
+Acer	Veriton Z4820G	15033-1M
+Dell	Alienware 13 R2	LA-C901P
+Dell	Alienware 14	LA-9201P
+Dell	Alienware 15 R3	LA-D751P
+Dell	Alienware 15 R3	LA-D753P
+Dell	Alienware 17 R4	BAP20 LA-D753P
+Dell	Alienware 17 R5	LA-F551P
+Dell	Alienware Alpha R2	IPPSL-CR NV
+Dell	Alienware Area-51 Threadripper Edition R7	MS-7B03
+Dell	Alienware Area-51m	DDQ70 LA-G881P
+Dell	Alienware Aurora R11	IPCML-SH
+Dell	Alienware M15 R3	LA-J521P
+Dell	Alienware M15 R4	LA-K741P
+Dell	Alienware M15 Ryzen Edition R5	LA-K453P
+Dell	Alienware M15 Ryzen Edition R6	LA-K454P
+Dell	Alienware M18 R1	Infinity RPL-HX 213194-1
+Dell	Alienware x14	LA-L381P
+Dell	Alienware x15/x17 R1	LA-K472P
+Dell	Dell Pro 16 Plus PB16250 Corporate	233075-1
+Dell	G15 5510	GDL55 LA-K662P
+Dell	G15 5511	GDL58 LA-K455P
+Dell	G15 5511 Consumer	LA-K452P
+Dell	G15 5515 Ryzen Edition	LA-K454P
+Dell	G15 5521	LA-L659P
+Dell	G15 5525	LA-L658P
+Dell	G16 7630	LA-M531P
+Dell	G3 15 3590	18825-1
+Dell	G3 15 3590	18839-1
+Dell	G3 15 3590	N18E MB 18812-1
+Dell	G3 3500 Consumer H	19795-1
+Dell	G3 3579	LA-F611
+Dell	G3 3779	LA-F612P
+Dell	G5 15 5500 Consumer H	19753-1
+Dell	G5 15 5587	LA-E993P
+Dell	G5 5587	LA-E994P
+Dell	Inspiron 13 5310 Consumer LP	Moonknight N13 TGL 203121-1
+Dell	Inspiron 13 5368 2-in-1	15296-1
+Dell	Inspiron 14 5401	Mockingbird Icl MB 8L 19775-1
+Dell	Inspiron 14 5410 2-in-1 Consumer	WatchMenTgl 203071-1
+Dell	Inspiron 14 5435	Quake N14_N16 AMD BCL-R 223095
+Dell	Inspiron 14 7460	LA-D822P
+Dell	Inspiron 14-3467	vegas turis skl/kbl 15341-1
+Dell	Inspiron 14z 5423	11289-1
+Dell	Inspiron 15 3511	GDM50 LA-L241P
+Dell	Inspiron 15 3515	LA-245P
+Dell	Inspiron 15 3525	LA-L945P
+Dell	Inspiron 15 3535	LA-M365P
+Dell	Inspiron 15 3576	17841-1
+Dell	Inspiron 15 Gaming 5577	DAAM9BMBAD0 REV:D
+Dell	Inspiron 15 Gaming 7567	BBV00/10 LA-D993P
+Dell	Inspiron 15 Gaming 7577	LA-E991P
+Dell	Inspiron 15-3567	15341-1 91N85
+Dell	Inspiron 1545	08224-1
+Dell	Inspiron 16 5625	213080-1
+Dell	Inspiron 16 7610	CYBORG-H TGL-H 203060-1 5J4VT
+Dell	Inspiron 16 7610 Consumer H	19844-1
+Dell	Inspiron 17 5767	LA-D805P
+Dell	Inspiron 17-3721	LA-9102P
+Dell	Inspiron 17R 5737	LA-9984P
+Dell	Inspiron 3147	13270-1
+Dell	Inspiron 3451	Iris BTM MB 14214-1 1JTN6
+Dell	Inspiron 3505	GDI53 LA-K001P
+Dell	Inspiron 3515	LA_L245P
+Dell	Inspiron 3531	ZBW00 LA-B481P
+Dell	Inspiron 3537	LA-9981P
+Dell	Inspiron 3541	13283-1
+Dell	Inspiron 3542	13269-1 FX3MC
+Dell	Inspiron 3543	13269-1 FX3MC
+Dell	Inspiron 3552	Iris BSW MB 14279-1
+Dell	Inspiron 3581	EDI72 LA-G714P
+Dell	Inspiron 3583	EDI54 LA-G712P
+Dell	Inspiron 3593	LA-J081P
+Dell	Inspiron 3793	LA-J081P
+Dell	Inspiron 5400 2-in-1	HELLCAT 14 IICL 8L 19785-1
+Dell	Inspiron 5400 AIO	IPTGL-CL
+Dell	Inspiron 5401 Consumer LP	Mockingbird ICL MB 87 19775-1
+Dell	Inspiron 5406 2n1 Consumer	HELLCAT 14 MS TGL 8L 19860-1
+Dell	Inspiron 5415	Cyborg AMD 15N A00 203076-1
+Dell	Inspiron 5448	LA-B015P
+Dell	Inspiron 5481 2-in-1	TVMHG 17859-1
+Dell	Inspiron 5482 2-in-1	TVMHG 17859-1
+Dell	Inspiron 5485 P93G	AMD 18796-2
+Dell	Inspiron 5501	19775-1
+Dell	Inspiron 5547	LA-B012P
+Dell	Inspiron 5551	LA-B912P
+Dell	Inspiron 5559	LA-D071P
+Dell	Inspiron 5566	LA-D871P
+Dell	Inspiron 5567	LA-D801P
+Dell	Inspiron 5570	CAL60 LA-114P
+Dell	Inspiron 5748	MB 13269-1
+Dell	Inspiron 5755	AAL12 LA-C142P
+Dell	Inspiron 5758	LA-B843P
+Dell	Inspiron 7347	MB 13321-1
+Dell	Inspiron 7373	KYLO REN 13 16839-1
+Dell	Inspiron 7386	Rogue one 13 8L 17925-1
+Dell	Inspiron 7437	MB DOH40 12310-1
+Dell	Inspiron 7459	IMPSL-PD
+Dell	Inspiron 7460	BKD40 LA-D821P
+Dell	Inspiron 7490	LA-H451P
+Dell	Inspiron 7500 2in1 Silver	HELLCAT 15MS ICL L 19789-1
+Dell	Inspiron 7501	MOCKINGBIRD-H N7 15 UMA 19804-1
+Dell	Inspiron 7506 2-in-1	HELLCAT 19859-1
+Dell	Inspiron 7537	12311-1
+Dell	Inspiron 7548 Non-VPro	DA0AM6MB8F1
+Dell	Inspiron 7559 Consumer H	AM9A
+Dell	Inspiron 7566	LA-D991P
+Dell	Inspiron 7586 Consumer LP	RO 15/17 WHL 2G 18706-1
+Dell	Inspiron 7720	DA0R09MB6H1
+Dell	Latitude 3189	LA-E371P
+Dell	Latitude 3190	LA-F463P
+Dell	Latitude 3301	WASP13 MB 18769-1
+Dell	Latitude 3310 Consumer LP	19717-1
+Dell	Latitude 3400	17938-1
+Dell	Latitude 3410 Consumer LP	Mockingbird-l CML UMA 6l 19746-1
+Dell	Latitude 3420 Consumer LP	Cyborg-L14 mb 203068-1
+Dell	Latitude 3430	213274-1
+Dell	Latitude 3440 Consumer LP	Quakel14_rpl 213247-1
+Dell	Latitude 3490	LA-F115P
+Dell	Latitude 3510	Mockingbird-L 19746-1
+Dell	Latitude 3510	MOCKINGBIRD-L CML DIS 8L 19709-1
+Dell	Latitude 3520	Cyborg-L15 MB TGL 213047-1
+Dell	Latitude 3540	LA-A491P
+Dell	Latitude 3550	LA-B071P
+Dell	Latitude 3570	MB 14291-1
+Dell	Latitude 3580_3588	16852-1
+Dell	Latitude 5280 VPRO LP	LA-E071P
+Dell	Latitude 5290 2-in-1	DAJ00 LA-F372P
+Dell	Latitude 5300 2-in-1 Consumer LP	18723-1
+Dell	Latitude 5300 2-in-1 Corporate LP	18717-1
+Dell	Latitude 5300 2-in-1 Corporate LP	Bandon Non-TBT 18723-1
+Dell	Latitude 5300 Consumer	18717-1 18828-1
+Dell	Latitude 5300 VPRO LP	18827-1
+Dell	Latitude 5310 Consumer LP	19752-1
+Dell	Latitude 5310 VPRO LP	19842-1
+Dell	Latitude 5320 Consumer	SouthPeak 13 TGL
+Dell	Latitude 5320 Corporate LP	19817-1
+Dell	Latitude 5400 Chromebook Enterprise	LA-H771P
+Dell	Latitude 5400 Corporate LP	LA-G891P
+Dell	Latitude 5400 Corporate LP	LA-G892P
+Dell	Latitude 5401 Corporate H	LA-H171P
+Dell	Latitude 5410 Consumer LP	LA-J371P
+Dell	Latitude 5410 Corporate LP	FDZ41 LA-J372P
+Dell	Latitude 5410 Corporate LP	LA-J371P
+Dell	Latitude 5411 Corporate H	FDV42 LA-J271P
+Dell	Latitude 5411 Corporate H	FDV42 LA-J272P
+Dell	Latitude 5420 Consumer LP	LA-K491P
+Dell	Latitude 5420 Corporate LP	LA-K491P
+Dell	Latitude 5430 Corporate LP	LA-L591P
+Dell	Latitude 5430 Corporate LP (LA-L591P) v2	
+Dell	Latitude 5440 Corporate LP	LA-M401P
+Dell	Latitude 5450 Corporate	LA-N381P
+Dell	Latitude 5480 Corporate LP	LA-E082P
+Dell	Latitude 5480 VPRO H	CDP70 LA-E141P
+Dell	Latitude 5480 VPRO LP	LA-E081P
+Dell	Latitude 5490	LA-F401P
+Dell	Latitude 5491 Corporate H	LA-F701P
+Dell	Latitude 5491 Corporate H	LA-F702P
+Dell	Latitude 5500 Non-VPRO LP (LA-G901P) 8MB_16MB	
+Dell	Latitude 5500 VPRO LP	LA-G902P
+Dell	Latitude 5500 VPRO LP (LA-G901P) 32MB	
+Dell	Latitude 5501 VPRO H	LA-H181P
+Dell	Latitude 5510 Corporate LP	LA-J381P
+Dell	Latitude 5510 Corporate LP	LA-J382P
+Dell	Latitude 5511 Corporate H	LA-J281P
+Dell	Latitude 5520 Consumer LP	SouthPeak 15 TGL MB: 19819-1
+Dell	Latitude 5520 Corporate LP	19853-1
+Dell	Latitude 5520 Corporate LP	SouthPeak 15 TGL MB: 19819-1
+Dell	Latitude 5520 Corporate LP (SouthPeak 15 TGL MB: 19819-1) v2	
+Dell	Latitude 5521 Consumer	Broadmoor 15 TGL-H
+Dell	Latitude 5521 Corporate	Broadmoor 15 TGL-H 12L
+Dell	Latitude 5530 Corporate LP	213179-1
+Dell	Latitude 5530 Corporate LP	SOUTH PEAK 15 MLK MB DDR4 203102-1
+Dell	Latitude 5530 Corporate LP	SouthPeak 15 MLK_TGL 203133-1
+Dell	Latitude 5540 Corporate LP	Arches 15 DDR4 223032-1
+Dell	Latitude 5580 VPRO H	LA-E151P
+Dell	Latitude 5580 VPRO H	LA-E152P
+Dell	Latitude 5580 VPRO LP	LA-E091P
+Dell	Latitude 5590 VPRO LP	LA-F411P
+Dell	Latitude 5590 VPRO LP	LA-F412P
+Dell	Latitude 5591 VPRO H	LA-F711P
+Dell	Latitude 6430u	LA-8831P
+Dell	Latitude 7275 VPRO	AAE00 LA-C321P
+Dell	Latitude 7280	LA-E121P
+Dell	Latitude 7280	LA-E122P
+Dell	Latitude 7290 VPRO LP	LA-F312P
+Dell	Latitude 7300 VPRO LP	LA-G861P
+Dell	Latitude 7320	GDC31 LA-K371P
+Dell	Latitude 7350 VPRO	ZAU70 LA-B331P
+Dell	Latitude 7370	LA-D312P
+Dell	Latitude 7389 VPRO LP	LA-E111P
+Dell	Latitude 7390 2-in-1 VPRO LP	LA-F292P
+Dell	Latitude 7390 VPRO LP	LA-F312P
+Dell	Latitude 7400 2-in-1 Corporate H	LA-G441P
+Dell	Latitude 7400 Non-VPRO (EDC40 LA-G871P) 8MB+16MB	
+Dell	Latitude 7400 VPRO LP (EDC40 LA-G871P) 32MB	
+Dell	Latitude 7410 VPRO LP	LA-J261P
+Dell	Latitude 7420	LA-K371P
+Dell	Latitude 7480	CAZ20 LA-E131P
+Dell	Latitude 7480	LA-E132P
+Dell	Latitude 7490 Corporate LP	LA-F321P
+Dell	Latitude 7490 Corporate LP	LA-F322P
+Dell	Latitude 9410	LA-J541P
+Dell	Latitude D630	UMA LA-3301P
+Dell	Latitude E5270 H	LA-C621P
+Dell	Latitude E5270 LP	LA-C621P
+Dell	Latitude E5430	QXW00 LA-7901P
+Dell	Latitude E5450 VPRO	ZAM70 LA-A901P
+Dell	Latitude E5470 VPRO H	KP60X LA-C832P
+Dell	Latitude E5470 VPRO H	LA-C831P
+Dell	Latitude E5470 VPRO LP	ADM70 LA-C631P
+Dell	Latitude E5470 VPRO LP	LA-C831P
+Dell	Latitude E5520	10ELT15F001-A KRUG 15
+Dell	Latitude E5530 non-vPro	QXW10 LA-7902P
+Dell	Latitude E5540	LA-A101P
+Dell	Latitude E5550 Non-VPRO (8Mb)	LA-A911P
+Dell	Latitude E5550 VPRO LP (8Mb + 4Mb)	LA-A911P
+Dell	Latitude E5570 VPRO H	ADP80 LA-C841P
+Dell	Latitude E5570 VPRO LP	ADM80 LA-C641P
+Dell	Latitude E6230	QAM00 LA-7731P
+Dell	Latitude E6330	QAL70 LA-7741P
+Dell	Latitude E6430	LA-7781P
+Dell	Latitude E6520	PALK61 LA-6561P rev 2.0
+Dell	Latitude E6530	LA-7762P
+Dell	Latitude E6540	LA-9411P
+Dell	Latitude E6630	LA-7741P
+Dell	Latitude E7270	LA-C451P
+Dell	Latitude E7440	LA-9591P
+Dell	Latitude E7450 (LA-A961P) VPRO	
+Dell	Latitude E7470	LA-C461P
+Dell	OptiPlex 3040	
+Dell	OptiPlex 3040 micro	
+Dell	OptiPlex 3050	7XVJF
+Dell	OptiPlex 3050 AIO	IPKBL-SR/65W
+Dell	OptiPlex 3060 Micro	IPCFL-CG
+Dell	OptiPlex 3070 Micro	IPCFL-CG
+Dell	OptiPlex 3070 SFF	
+Dell	OptiPlex 3080	IPCML-CT
+Dell	OptiPlex 3080 Slim	IPCML-CT
+Dell	OptiPlex 3090	18460-2 D11.5 ENTRY Opti3/vos
+Dell	OptiPlex 3240 AIO	IPPSL-CD
+Dell	Optiplex 5040	
+Dell	OptiPlex 5050	Angelfish MT 16509-1
+Dell	OptiPlex 5050 SFF	
+Dell	OptiPlex 5060 SFF	
+Dell	OptiPlex 5070 Micro	IPCFL-BS/EK
+Dell	OptiPlex 5070 SFF	0YJMC0
+Dell	OptiPlex 5080 Micro	IPCML-RN/ZB
+Dell	OptiPlex 5090 Micro	IPRKL-BO/CB
+Dell	OptiPlex 5090 SFF	
+Dell	OptiPlex 5250 AIO	IPKBL-SM
+Dell	OptiPlex 5260 AIO	IPCFL-8H
+Dell	OptiPlex 5490 AIO Corporate H	IPRKL-GF/UMA
+Dell	OptiPlex 7000 Micro	202008-1
+Dell	OptiPlex 7010 Micro	D13_MFF_Luxor_LOW 212045-1
+Dell	Optiplex 7020 SFF	
+Dell	OptiPlex 7040 Micro	PWB Rev A00
+Dell	OptiPlex 7040 SFF	
+Dell	OptiPlex 7040 Tower	
+Dell	OptiPlex 7050 SFF v1	
+Dell	OptiPlex 7050 SFF v2	
+Dell	OptiPlex 7060	IPCFL-BS/EK
+Dell	OptiPlex 7060 SFF v1	
+Dell	OptiPlex 7070 Micro	IPCFL-BS 65W
+Dell	OptiPlex 7070 Tower	
+Dell	OptiPlex 7080 Micro	
+Dell	OptiPlex 7080 SFF	
+Dell	Optiplex 7090	IPRKL-80/CB
+Dell	OptiPlex 7090 Micro	IPRKL-8065/DGFX
+Dell	Optiplex 7400 AIO	IPADL-PP/UMA
+Dell	Optiplex 7420 AIO Corporate H	222045-1
+Dell	OptiPlex 7440 AIO	IPPSL-BF
+Dell	OptiPlex 7450	E162264
+Dell	OptiPlex 7450 AIO	IPKBL-TP
+Dell	OptiPlex 7450 v2	
+Dell	OptiPlex 7460 AIO	IPCFL-GL
+Dell	OptiPlex 7480 AIO	IPCML-GZ
+Dell	OptiPlex 780	Arrowhead
+Dell	OptiPlex 9010 AIO	
+Dell	Optiplex 9020	IPPLP-AZ
+Dell	OptiPlex 9030	IPPLP-RH/TH
+Dell	OptiPlex 990	KATSIKI-USFF
+Dell	Optiplex AIO 7470 Corporate H	IPCFL-GL
+Dell	OptiPlex XE3	
+Dell	PowerEdge T140	17086-1
+Dell	Precision 3240 Compact Corporate H	
+Dell	Precision 3431	01TN68
+Dell	Precision 3520 Corporate H	LA-E153P
+Dell	Precision 3530 Corporate H	LA-F711P
+Dell	Precision 3530 Corporate H	LA-F712P
+Dell	Precision 3541 Corporate H	LA-H182P
+Dell	Precision 3550 Consumer LP	LA-J451P
+Dell	Precision 3551 Corporate H	LA-J282P
+Dell	Precision 3560	19819-1
+Dell	Precision 3560 Corporate LP	19819-1
+Dell	Precision 3630 Tower VPRO H	IPCFL-TB
+Dell	Precision 3640 Tower VPRO H	IPCML-RT
+Dell	Precision 5540 VPRO H	LA-H331P
+Dell	Precision 5550 VPRO H	LA-J191P
+Dell	Precision 5560 Corporate H	LA-K411P
+Dell	Precision 5570 Corporate	HD051/HDA51 LA-L402P
+Dell	Precision 5820 Tower VPRO H	
+Dell	Precision 7510 VPRO	LA-C541P
+Dell	Precision 7520 VPRO H	LA-E311P
+Dell	Precision 7530 VPRO H	DAP10 LA-F591P
+Dell	Precision 7540 VPRO H	LA-H271P
+Dell	Precision 7550 VPRO H	LA-J171P
+Dell	Precision 7550 VPRO H	LA-J181P
+Dell	Precision 7560 VPRO H	GDB55 LA-K621P
+Dell	Precision 7720 VPRO	LA-E321P
+Dell	Precision 7730 VPRO H	LA-F601P
+Dell	Precision 7740 VPRO H	LA-H281P
+Dell	Precision 7750 VPRO H	LA-J181P
+Dell	Precision 7760 VPRO H	LA-K631P
+Dell	Precision 7820 Tower	
+Dell	Precision M3800	VAUB0 LA-9941P
+Dell	Precision M4700	LA-7931P
+Dell	Precision M4800	LA-9772P
+Dell	Precision M6700	LA-7933P
+Dell	Precision M6800	LA-9781P
+Dell	Precision M6800	LA-9782P
+Dell	Precision Tower 3620 VPRO H	
+Dell	Vostro 14 5468	LA-D821P
+Dell	Vostro 15 3510 Consumer LP	GDM50 LA-L241P
+Dell	Vostro 15 5568	LA-D821P
+Dell	Vostro 15-3568	Turis SKL/KBL, 15341-1 91N85
+Dell	Vostro 2521	VAW00 LA-9104P
+Dell	Vostro 3470	17530-1 P9Y5RSFA
+Dell	Vostro 3500	LA-K034P
+Dell	Vostro 3500 Consumer LP	LA-K032P
+Dell	Vostro 3501	LA-J081P
+Dell	Vostro 3520 Consumer LP	LA-L946P
+Dell	Vostro 3550	10245-4
+Dell	Vostro 3560	MB QCL00 LA-8241P
+Dell	Vostro 3590	FDI50 LA-G717P
+Dell	Vostro 3591	LA-J081P
+Dell	Vostro 3671	19422-1
+Dell	Vostro 3700	09290-1 48.RU06.011
+Dell	Vostro 3888	18463-2
+Dell	Vostro 5470	DAJW8CMB8E1
+Dell	Vostro 5490	Mantis CML MB 18778-1
+Dell	Vostro 5502	19862-1
+Dell	Vostro 5568	LA-D822P
+Dell	Vostro 5590	Mantis CML MB 18778-1
+Dell	Vostro 7590	NBL_N15_MB REV:A00
+Dell	XPS 12 9250 VPRO	AAE00 LA-C321P
+Dell	XPS 13 7390 2-in-1	LA-G172P
+Dell	XPS 13 7390 Consumer LP	LA-H931P
+Dell	XPS 13 9300 Consumer LP	LA-H811P
+Dell	XPS 13 9305 Consumer LP	FDP30 LA-K461P
+Dell	XPS 13 9310 Consumer	GDA30 LA-J143P
+Dell	XPS 13 9310 Consumer LP	GDA31 LA-J144P
+Dell	XPS 13 9343 VPRO	ZAZ00 LA-B441P
+Dell	XPS 13 9350 Consumer LP	AAZ80 LA-C881P
+Dell	XPS 13 9360 Corporate LP	LA-F051P
+Dell	XPS 13 9360 VPRO LP	CAZ00 LA-D841P Rev 3.0
+Dell	XPS 13 9365	LA-D781P
+Dell	XPS 13 9370 VPRO LP	LA-E671P
+Dell	XPS 15 9500 Consumer H	LA-J191P
+Dell	XPS 15 9500 Consumer H (LA-J191P) v2	
+Dell	XPS 15 9510 Corporate H	LA-K411P
+Dell	XPS 15 9520 Corporate LP	LA-L402P
+Dell	XPS 15 9550	AAM00 LA-C361P
+Dell	XPS 15 9550 Corporate H	AAM00 LA-C361P
+Dell	XPS 15 9570 VPRO H	LA-G341P
+Dell	XPS 1640	DA0RM2MBAH0 REV: H
+GigaByte	Aero 17KB	GA-RP77KB
+GigaByte	Aorus 7 9KF	GA-X7E rev 1.0
+HP	HP 14-dh	FAROE_DIS_X32_MB_MV 18742-1
+HP	HP 15DW1000NW	LA-H323P
+HP	HP 15M-BQ121DX	NBA_ROCKETR_RR_MB 16907-1
+HP	HP 250 G5 Notebook PC	LA-D707P
+HP	HP 250 G6 Notebook PC	CSL50/CSL52 LA-E791P
+HP	HP 250 G8 Notebook PC	FPI50 LA-H329P
+HP	HP 255 15.6 inch G9 Notebook PC	LA-K205P
+HP	HP 285 G3 MT Business PC	17516-1
+HP	HP All-in-One 24-df0xxx	DAN14EMB6E0 rev. E
+HP	HP Elitebook 840 G3	6050A2892401-MB-A01
+HP	HP EliteBook Revolve 810 G2 Tablet	13246-1
+HP	HP EliteBook x360 1030 G3	DA0Y0PMBAE0 REVE
+HP	HP ENVY 17-M7-n001dx	LA-C531P
+HP	HP ENVY Laptop 13-ba1002sf	LA-J471P
+HP	HP ENVY Laptop 16-h0xxx	LA-M054P
+HP	HP ENVY Laptop 17-ch1xxx	TIBERIUS 8L EM370 203036-1N
+HP	HP ENVY Notebook - 15-ae027tx	ABW50 LA-C501P REV 1.0
+HP	HP Envy x360 2-in-1 Laptop 15-fh0xxx	LA-M798P
+HP	HP ENVY x360 Convertible 15m-ee0xxx	LA-J493P
+HP	HP IPIEL-LA3	IPIEL-LA3
+HP	HP Laptop 15-dw1xxx	LA-H323P
+HP	HP Laptop 15-dw3123nw	LA-K201P
+HP	HP Laptop 17-cp0253nw	6050A3260801-MB-A01
+HP	HP Mini 5101	6050A2255301-MB-A02
+HP	HP Pavilion Gaming 15-DK	LA-L001P
+HP	HP Pavilion Gaming Laptop 15-cx0xxx	LA-F841P
+HP	HP Pavilion Gaming Laptop 15-dk1xxx	LA-J642P
+HP	HP Pavilion Gaming Laptop 17-cd2012nq	LA-L011P
+HP	HP Pavilion Laptop 15-eg0xxx	DAG0G7HMB8G0
+HP	HP Pavilion Laptop 15-eh2006nq	DAG7HFMB8C0 C
+HP	HP Pavilion Plus Laptop 14-eh0xxx	213145-1N DUCKHORN
+HP	HP Pavilion x360 Convertible 14-dy2003la	213021-1N_HP 14-DY2003la
+HP	HP ProBook 450 G2	LA-B181P
+HP	HP ProBook 450 G4	DA0X83MB6H0
+HP	HP ProBook 450 G7	DA0X8MMB6D0
+HP	HP ProBook 640 G4	MB: L09566-601
+HP	HP ProBook 640 G4	MB: L09569-601
+HP	HP ProBook 650 G5	6050A3028501
+HP	HP Spectre x360 - 13t-aw000 CTO	DAG7HAMB8F0 REV:F
+HP	HP ZBook Fury 17.3 inch G8 Mobile Workstation PC	LA-K772P
+HP	HP ZBook Studio G4	CPW5U LA-E251P
+HP	OMEN by HP Gaming Laptop 16-n0xxx	DAG3NMB5CC0
+HP	OMEN by HP Gaming Laptop 16-wd0xxx	LA-M787P
+HP	OMEN by HP Laptop 16-c0124nw	DAG3KQMBAD0
+HP	OMEN Gaming Laptop 17-db0xxx	DA0G3SMB8E0 rev E
+HP	OMEN Laptop 15-ek1013dx	DAG3EEMBCF0
+HP	OMEN Laptop 15-en1xxx	DAG3EFMBEE0
+HP	OMEN X 17-ap000nx	DA0G3CMBCH0
+Lenovo	IdeaCentre AIO 3 27ALC6	LA-K891P
+Lenovo	IdeaCentre AIO 5-24ALC6	NM-D641
+Lenovo	Ideacentre AIO 5-27IMB05 Desktop	A550_27IMB G51ZD Rev1.0
+Lenovo	IdeaCentre AIO 510-22ISH	LA-D952P
+Lenovo	IdeaPad 1 14ADA05	S150ADA 19877-1
+Lenovo	IdeaPad 1 15ALC7	NM-E541
+Lenovo	IdeaPad 1-14IGL05	MB 19705-1M
+Lenovo	IdeaPad 120S-11IAP	120S_MB_V3.0
+Lenovo	IdeaPad 120S-14IAP	120S_MB_V1.0
+Lenovo	IdeaPad 3 14ALC6	NM-D521
+Lenovo	IdeaPad 3 14ARE05	NM-C861
+Lenovo	IdeaPad 3 14IIL05	NM-D031
+Lenovo	IdeaPad 3 15ABA7	NM-e531
+Lenovo	IdeaPad 3 15ADA05	NM-C821
+Lenovo	IdeaPad 3 17ADA05	NM-C821
+Lenovo	IdeaPad 3 17ALC6	NM-D521
+Lenovo	IdeaPad 3-15ALC6	NM-D521
+Lenovo	Ideapad 320-15IKB	NM-B451
+Lenovo	Ideapad 330-15AST	NM-B321
+Lenovo	Ideapad 330S-15ARR	330S_ARR_V03 rev VT
+Lenovo	Ideapad 330S-15ARR	330S_ARR_V06 rev MP
+Lenovo	IdeaPad 5 14ALC05	LA-J701P
+Lenovo	IdeaPad 5 15ALC05	NM-D701
+Lenovo	Ideapad 5 15ARE05	HS551-HS552 NM-C811
+Lenovo	ideapad 5 Pro-14ACN6	LA-K483P
+Lenovo	Ideapad 5-15IIL05	GS557_GS558 NM-C681
+Lenovo	IdeaPad C340-14IML	LA-H082P
+Lenovo	Ideapad Flex 3-11IGL05	BM5968_v1.4
+Lenovo	IdeaPad Flex 5 14ABR8	LC56-ABR MB 223059-2
+Lenovo	IdeaPad Flex 5 14ALC05	LC56-14A SVT
+Lenovo	IdeaPad Flex 5 14ARE05	LC55-14A 19793-1M
+Lenovo	IdeaPad Flex 5 14IIL05	LC55-15C 19792-3
+Lenovo	IdeaPad Flex 5 14ITL05	LC56-14T 203044-1
+Lenovo	IdeaPad Flex 5 Chromebook-13ITL6	JE443/JE543 NM-E501
+Lenovo	IdeaPad Gaming 3 15IAH7	LA-L911P REV.1A
+Lenovo	IdeaPad Gaming 3 16IAH7	HLG30 LA-L916P
+Lenovo	IdeaPad S145-14AST	NM-C171
+Lenovo	IdeaPad S145-15API	NM-C511
+Lenovo	IdeaPad S340-15IWL	LA-H131P
+Lenovo	IdeaPad S540-13API	NM-C581
+Lenovo	IdeaPad S540-15IWL	NB8606-MB-V4
+Lenovo	IdeaPad Slim 3 14ABR8	NM-F031
+Lenovo	IdeaPad Slim 3 15AMN8	NM-F061
+Lenovo	IdeaPad Slim 3 15IAH8	MN-F331
+Lenovo	IdeaPad Slim 3 16ABR8	NM-F031
+Lenovo	IdeaPad Slim 5 16ABR8	LA_M653P
+Lenovo	IdeaPad Y550	LA-4601P
+Lenovo	IdeaPad Y910-17ISK	NM-B151
+Lenovo	IdeaPad Yoga Slim 7 Pro-14ACH5	NM-D691
+Lenovo	Legion 5 15IAH7	NM-E851
+Lenovo	Legion 5 15ITH6	NM-D742
+Lenovo	Legion 5 16ACH6	NM-D601
+Lenovo	Legion 5 16IRX9	LA-N211P
+Lenovo	Legion 5 Pro 16ACH6	NM-D601
+Lenovo	Legion 5 Pro 16ARH7H	NM-E471
+Lenovo	Legion 5 Pro 16ITH6H	MN-D711
+Lenovo	Legion 5-17ACH6H	NM-D562
+Lenovo	Legion 5P-15ARH05H	NM-D281
+Lenovo	Legion 7-16ACHG6	NM-D563
+Lenovo	Legion 9 16IRX8	NM-B481
+Lenovo	Legion Go 8APU1	76080-1
+Lenovo	Legion Pro 5 16ARX8	KY585 NM-F251
+Lenovo	Legion S7 16ARHA7	NM-E691
+Lenovo	Legion S7-15ACH6	BM5070_V1.4
+Lenovo	Legion Slim 5 14APH8	MN-F301
+Lenovo	Legion Y520T-25IKL Desktop	LDF1 MB 16553-1M
+Lenovo	Legion Y540-15IRH-PG0	NM-C372
+Lenovo	Legion Y7000 2019 1050	NM-C221
+Lenovo	Lenovo 14w Gen 2	203105-1m
+Lenovo	Lenovo B50-45	LA-B291P
+Lenovo	Lenovo Flex 2-14	LF14M MB 13281-1
+Lenovo	Lenovo G50-45	ACLU5/ACLU6 NM-A281
+Lenovo	Lenovo ideapad 720S-14IKB	LA-F141P
+Lenovo	Lenovo N24 Winbook	
+Lenovo	Lenovo s20-30	BM5406
+Lenovo	Lenovo V110-15AST	LV1145 ASR 15283-3
+Lenovo	Lenovo V110-15IAP	LV114A 15270-1
+Lenovo	Lenovo V130-15IGM	LV315GM_MB 17839-1M
+Lenovo	Lenovo V130-15IKB	LV315KB MB 17807-3M
+Lenovo	Lenovo V14-IIL Laptop	NM-C711
+Lenovo	Lenovo V15 G2 ALC	NM-D522
+Lenovo	Lenovo V15 G2 ITL	NM-D474
+Lenovo	Lenovo V15-ADA	GV451 GV551 NM-D151
+Lenovo	Lenovo XiaoXinPro-13IML 2020	NM-C571
+Lenovo	Lenovo Yoga 3 11	LA-B921P
+Lenovo	Lenovo Yoga 3 Pro-1370	NM-A321
+Lenovo	Lenovo Yoga 7 16IRL8	NB6380A_MB_V3
+Lenovo	Lenovo YOGA 900-13ISK2	NM-A921
+Lenovo	Lenovo Yoga AIO 7-27ACH6	YOGA27-ACH
+Lenovo	Lenovo Yoga S940-14IIL	18777-1
+Lenovo	Notebook 300e 2nd Gen	BM5860 V1.3
+Lenovo	ThingPad T14s Gen 4	NM-F221
+Lenovo	ThinkBook 13s G2 ITL	LV550 13MB 19869-2
+Lenovo	ThinkBook 14 G4 ABA	LA-M062P
+Lenovo	ThinkBook 14 G6 IRL	223107-1
+Lenovo	ThinkBook 14-IIL, ThinkBook 15-IIL	DALVACMB8D0
+Lenovo	ThinkBook 14s Yoga ITL	LA-K051P
+Lenovo	ThinkBook 15 G4 IAP	LA-L931P
+Lenovo	ThinkBook 15P Gen 2	NM-E021
+Lenovo	ThinkBook 15p IMH	NM-D091
+Lenovo	ThinkBook 16 G4+ ARA	NB6009_MB_V7
+Lenovo	ThinkBook 16P G2 ACH	Type 20YM
+Lenovo	ThinkBook 16p Gen 2	BM5070 V1.4
+Lenovo	ThinkCentre M73z All-in-One	12103-1
+Lenovo	ThinkCentre M910z All-in-One	IQ270SV
+Lenovo	Thinkpad A485	EA481 NM-B711
+Lenovo	Thinkpad E14 Gen 3	NM-D481
+Lenovo	Thinkpad E15 Type 20RD, 20RE	NM-C421
+Lenovo	Thinkpad E16 Gen 2	NM-F941
+Lenovo	Thinkpad E495	FE495/FE595 NM-C061
+Lenovo	Thinkpad E555	NM-A241
+Lenovo	ThinkPad L14 Gen 2 (Intel)	HL4A0_HL5A0 NM-D271
+Lenovo	Thinkpad L14 Gen 2 Consumer 32MB	NM-D271
+Lenovo	Thinkpad L14 Gen 2 Corporate 32MB + 16MB	NM-D271
+Lenovo	ThinkPad L390 (LKL-2 MB 18724-1M) Non-VPro	
+Lenovo	Thinkpad L460 Non-VPro	NM-A651
+Lenovo	Thinkpad L460 VPRO 2x8MB SPI	NM-A651
+Lenovo	Thinkpad L480 Non-VPro	NM-B461
+Lenovo	ThinkPad L540 Non-VPro 8Mb	LPD-1 MB 12290-2
+Lenovo	ThinkPad L540 VPRO 8Mb + 4Mb	LPD-1 MB 12290-1M
+Lenovo	ThinkPad L590	NM-B931
+Lenovo	Thinkpad P1 gen 3	19770-1
+Lenovo	ThinkPad P50S	LZS-2 15202-2
+Lenovo	ThinkPad P52	NM-B561
+Lenovo	ThinkPad S440	LA-9761P
+Lenovo	ThinkPad T14 Gen 1	NM-C801
+Lenovo	ThinkPad T14 Gen 3	NM-E441
+Lenovo	ThinkPad T14 Gen 3	NM-E981
+Lenovo	ThinkPad T450	NM-A251
+Lenovo	ThinkPad T460	NM-A581
+Lenovo	ThinkPad T460P	NM-A611
+Lenovo	ThinkPad T470	NM-A931
+Lenovo	ThinkPad X1 Carbon	11246-1 LGS-1 MB
+Lenovo	ThinkPad X1 Carbon 3rd Gen	LMQ2 MB 13268-1
+Lenovo	ThinkPad X1 Carbon 7th Gen Corporate LP	NM-C881
+Lenovo	ThinkPad X1 Carbon Gen 8	NM-C661
+Lenovo	ThinkPad X1 Nano Gen 1	ZS1TL-7 19796-1
+Lenovo	ThinkPad X1 Yoga 3rd Gen VPRO	LRV3 MB 17800-1
+Lenovo	Thinkpad X12 Detachable Gen 1	LH1 TGL MB 10L 19835-1
+Lenovo	ThinkPad X280	EX280 NM-B521
+Lenovo	ThinkPad X390 Yoga	LBB-1 MB 18729-1
+Lenovo	ThinkPad Yoga 260	AIZS1 LA-C581P
+Lenovo	ThinkPad Yoga 370	LA-E292P
+Lenovo	ThinkPad Yoga L380	LKL-1 MB 17821-2M
+Lenovo	ThinkStation P310	IQ1X0MS
+Lenovo	V530-24ICB AIO	ECA10 LA-F901P
+Microsoft	Surface Pro 2	
+Microsoft	Surface Pro 3	
+Samsung	NP350V5C	LA-8861P
+Samsung	NP355E7C	LA-8863P

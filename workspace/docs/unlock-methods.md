@@ -34,10 +34,10 @@
 3. EC verifies and clears password flag in its RAM
 4. On next boot, BIOS reads "unlocked" from EC
 
-**Implementation (UBT2 approach):**
+**Implementation approach:**
 - Modify EC firmware image in BIOS region (if EC stored there)
 - Or: Patch EC RAM via KBC commands at runtime (requires OS/BIOS access)
-- UBT2 likely patches the EC firmware blob in BIOS region
+- Patch the EC firmware blob in BIOS region
 
 **Known EC RAM offsets (varies by model):**
 | Offset | Function |
@@ -190,7 +190,7 @@ Entries:
 
 ---
 
-## Vendor-Specific Algorithms (From UBT2 Info.txt)
+## Vendor-Specific Algorithms
 
 ### Lenovo
 - **Consumer (IdeaPad/Yoga/Legion):** Phoenix BIOS - password in NVRAM, readable via pattern
@@ -262,7 +262,7 @@ When you discover a new method:
 - Offset 0x01C010-0x036AE4: Repeated 384/48-byte blocks rewritten (ME modules?)
 - **Many regions filled with 0xFF** (erased to clean state)
 
-**Interpretation:** UBT2 performed ME Cleaner-style operation + BIOS region rebuild with clean ME.
+**Interpretation:** ME Cleaner-style operation + BIOS region rebuild with clean ME.
 
 ---
 
@@ -286,7 +286,7 @@ When you discover a new method:
 - Offset 0x880290 (426KB), 0xA34FAE (66KB), 0xBD0154: ME/BIOS modules
 - **Extensive 0xFF fills** = ME region erased to clean state
 
-**Interpretation:** Full SPI dump - UBT2 erased ME region (0x003A61-0x15279 ≈ 3MB) to clean 0xFF, then rebuilt BIOS region modules.
+**Interpretation:** Full SPI dump - ME region (0x003A61-0x15279 ≈ 3MB) erased to clean 0xFF, then BIOS region modules rebuilt.
 
 ---
 
@@ -329,14 +329,14 @@ When you discover a new method:
 ### Automated Detection Rules for These Patterns
 
 ```python
-def detect_ubt2_me_clean(diff_result):
-    \"\"\"Detect if diff matches UBT2 ME Clean pattern.\"\"\"
+def detect_me_clean(diff_result):
+    """Detect if diff matches the ME Clean pattern."""
     ff_fills = [r for r in diff_result.diff_regions if 'Filled with 0xFF' in r.description]
     large_ff = [r for r in ff_fills if r.size > 1000]
     me_region_erased = any(0x1000 <= r.offset <= 0x300000 for r in large_ff)
     return len(large_ff) > 5 and me_region_erased
 
-def detect_ubt2_bios_rebuild(diff_result):
+def detect_bios_rebuild(diff_result):
     \"\"\"Detect BIOS region rebuild pattern.\"\"\"
     rewritten = [r for r in diff_result.diff_regions if r.size > 100 and 'String change' in r.description]
     bios_region = [r for r in rewritten if r.offset >= 0x300000]

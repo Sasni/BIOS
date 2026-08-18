@@ -35,6 +35,7 @@ TOOL_MAP: dict[str, ToolDef] = {
     "diff":     ToolDef("diff_bios"),
     "batch":    ToolDef("batch_process"),
     "identify": ToolDef("identify_bios"),
+    "sigscan":  ToolDef("sigscan"),
     "db":       ToolDef("db_manager"),
     "fit":      ToolDef("fit_parser"),
     "find":     ToolDef("bios_finder"),
@@ -132,6 +133,7 @@ Core Tools:
   diff       Compare before/after repair BIOS dumps
   batch      Batch process directory of BIOS dumps into model database
   identify   Identify unknown BIOS dump against known models
+  sigscan    Scan dump for known model names / board IDs
   db         Database management (list, stats, export, dedup, remove)
 
 Advanced Tools:
@@ -145,6 +147,7 @@ Examples:
   bioskit diff original.bin repaired.bin
   bioskit batch ./bios_dumps/
   bioskit identify unknown.bin --analyze-first
+  bioskit sigscan unknown.bin
   bioskit db --stats
   bioskit fit bios.bin --verbose
   bioskit find ifr_output.txt "secure boot, password"
