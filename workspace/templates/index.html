@@ -53,6 +53,7 @@
                     <button class="tab active" data-tab="info" onclick="switchTab('info')">Info</button>
                     <button class="tab" data-tab="hex" onclick="switchTab('hex')">Hex</button>
                     <button class="tab" data-tab="diff" onclick="switchTab('diff')">Diff</button>
+                    <button class="tab" data-tab="vars" onclick="switchTab('vars')">Zmienne</button>
                     <button class="tab" data-tab="fix" onclick="switchTab('fix')">Fix</button>
                 </div>
                 <div class="spacer"></div>
@@ -110,12 +111,37 @@
                     <div id="diffContent"></div>
                 </div>
 
+                <!-- Variables (NVAR) view -->
+                <div id="view-vars" class="hidden">
+                    <div class="panel">
+                        <div class="panel-header"><span>Zmienne NVRAM (NVAR)</span><span class="text-muted text-sm" id="varHeader"></span></div>
+                        <div class="panel-body">
+                            <p class="text-sm text-muted" style="margin:0 0 8px;">Lista zmiennych zapisanych w BIOS-ie (ustawienia, boot order, klucze SecureBoot…). Kliknij wiersz, aby zobaczyć zawartość zmiennej i — w razie potrzeby — poprawić pojedynczy bajt na nowej kopii pliku.</p>
+                            <input type="text" id="varFilter" placeholder="Filtruj po nazwie… (np. Setup, BootOrder)" style="width:100%;max-width:340px;margin-bottom:8px;" oninput="varFilterRows(this.value)">
+                            <div style="max-height:380px;overflow:auto;border:1px solid var(--border);border-radius:6px;">
+                                <table class="var-table" style="width:100%;border-collapse:collapse;font-size:13px;">
+                                    <thead><tr>
+                                        <th style="text-align:left;padding:6px 10px;">Nazwa</th>
+                                        <th style="text-align:left;padding:6px 10px;">Status</th>
+                                        <th style="text-align:right;padding:6px 10px;">Dane</th>
+                                        <th style="text-align:left;padding:6px 10px;">GUID</th>
+                                        <th style="width:90px;"></th>
+                                    </tr></thead>
+                                    <tbody id="varRows"></tbody>
+                                </table>
+                            </div>
+                            <div id="varEmpty" class="hidden empty-state" style="padding:10px;"><p>Brak zmiennych NVAR w tym pliku.</p></div>
+                        </div>
+                    </div>
+                    <div id="varDetail"></div>
+                </div>
+
                 <!-- Fix / Repair view -->
                 <div id="view-fix" class="hidden"></div>
             </div>
         </main>
     </div>
 
-    <script src="/static/js/bios-ui.js?v=3"></script>
+    <script src="/static/js/bios-ui.js?v=4"></script>
 </body>
 </html>

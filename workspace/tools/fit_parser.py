@@ -112,6 +112,65 @@ class FitResult:
     bg_entries_present: bool = False  # FIT entries exist (may be empty placeholders)
     summary: str = ""
 
+@dataclass
+class IfdRegionInfo:
+    """One SPI region descriptor (from FLREGx)."""
+    index: int
+    name: str               # "BIOS", "ME", "GbE", "PDR"
+    base_4k: int            # base address in 4 KB units
+    limit_4k: int           # limit address in 4 KB units
+    offset: int             # absolute byte offset from SPI start
+    size: int               # size in bytes
+    is_populated: bool      # False if FLREG = 0x00000000 or 0xFFFFFFFF
+
+
+@dataclass
+class IfdRegionAccess:
+    """Master access permissions for one SPI region (from FLMSTRx)."""
+    region_index: int
+    region_name: str        # "BIOS", "ME", "GbE", "PDR"
+    read_masters: list[int]     # master IDs with read access
+    write_masters: list[int]    # master IDs with write access
+
+
+@dataclass
+class IfdComponentInfo:
+    """Flash component descriptor (from FCBA/FLCOMP)."""
+    density_mb: int
+    number_of_components: int
+    invalid_instr0: int         # opcode for invalid instruction 0
+    invalid_instr1: int         # opcode for invalid instruction 1
+
+
+@dataclass
+class IfdSecurityReport:
+    """Complete IFD security audit result."""
+    status: str = "not_detected"          # "not_detected" | "compliant" | "partial" | "non_compliant"
+    flash_size: int = 0
+    physical_base: int = 0
+    regions: list = field(default_factory=list)          # list[IfdRegionInfo]
+    master_access: list = field(default_factory=list)    # list[IfdRegionAccess]
+    components: list = field(default_factory=list)       # list[IfdComponentInfo]
+    descriptor_locked: bool = False
+    descriptor_checksum_valid: bool = False
+    bios_writable_by_me: bool = False
+    bios_writable_by_ec: bool = False
+    non_bypassability_pass: bool = False
+    issues: list = field(default_factory=list)           # list[str]
+    summary: str = ""
+
+
+# Master ID names (standard Intel IFD master enumeration)
+_MASTER_NAMES = {
+    0: "None",
+    1: "CPU/Host",
+    2: "ME",
+    3: "EC",
+    4: "GbE",
+    5: "Innovation Engine",
+}
+
+
 def parse_flash_descriptor(data: bytes) -> Optional[int]:
     """Parse Intel Flash Descriptor to determine physical base address.
 
@@ -581,6 +640,397 @@ def _result_to_dict(result: FitResult) -> dict:
             "needs_fpf_check": result.bootguard_status == "structures_found",
         },
         "summary": result.summary,
+    }
+
+
+# ─── IFD Security Audit Functions ─────────────────────────────────────────────
+
+
+def parse_ifd_regions(data: bytes, frba_offset: int) -> list:
+    """Parse FLREG0-FLREG7 region descriptors with size/offset precomputed.
+
+    Args:
+        data: Full SPI dump bytes.
+        frba_offset: Byte offset of the FRBA (Region Table) section.
+
+    Returns:
+        List of IfdRegionInfo, one per populated slot (0-7).
+    """
+    REGION_NAMES = {0: "BIOS", 1: "ME", 2: "GbE", 3: "PDR"}
+    _UNPROGRAMMED = {0x00000000, 0xFFFFFFFF}
+    regions: list = []
+
+    for i in range(8):
+        reg_off = frba_offset + i * 4
+        if reg_off + 4 > len(data):
+            break
+        flreg = struct.unpack_from('<I', data, reg_off)[0]
+        if flreg in _UNPROGRAMMED:
+            regions.append(IfdRegionInfo(
+                index=i,
+                name=REGION_NAMES.get(i, f"REG{i}"),
+                base_4k=0, limit_4k=0,
+                offset=0, size=0,
+                is_populated=False,
+            ))
+            continue
+
+        base_4k  = flreg & FLREG_MASK           # bits [14:0]
+        limit_4k = (flreg >> FLREG_BASE_SHIFT) & FLREG_MASK  # bits [30:16]
+        offset   = base_4k * 4096
+        size     = (limit_4k - base_4k + 1) * 4096
+
+        regions.append(IfdRegionInfo(
+            index=i,
+            name=REGION_NAMES.get(i, f"REG{i}"),
+            base_4k=base_4k,
+            limit_4k=limit_4k,
+            offset=offset,
+            size=size,
+            is_populated=True,
+        ))
+
+    return regions
+
+
+def parse_ifd_master_access(data: bytes, fmba_offset: int) -> list:
+    """Parse FLMSTR1-3 registers from the Master Access Table.
+
+    The IFD defines up to 6 FLMSTRx registers (one per SPI master). Each
+    32-bit register encodes read/write requester IDs for up to 4 regions
+    (BIOS, ME, GbE, PDR) in 8-bit groups:
+
+        bits [R*8+2 : R*8+0] = Read Requester ID
+        bits [R*8+6 : R*8+4] = Write Requester ID
+
+    A requester ID of 0 means "no access". Other IDs identify which master
+    is permitted.  We invert the mapping: for each *region*, we collect
+    which *masters* can read or write it.
+
+    Args:
+        data: Full SPI dump bytes.
+        fmba_offset: Byte offset of the FMBA (Master Access) section.
+
+    Returns:
+        List of IfdRegionAccess (one per region, 4 entries).
+    """
+    REGION_NAMES = {0: "BIOS", 1: "ME", 2: "GbE", 3: "PDR"}
+
+    # Build region→{read_masters, write_masters} by scanning all FLMSTRx
+    region_read: dict[int, set]  = {r: set() for r in range(4)}
+    region_write: dict[int, set] = {r: set() for r in range(4)}
+
+    for master_idx in range(6):  # up to 6 masters defined
+        flmstr_off = fmba_offset + master_idx * 4
+        if flmstr_off + 4 > len(data):
+            break
+        flmstr = struct.unpack_from('<I', data, flmstr_off)[0]
+        if flmstr == 0 or flmstr == 0xFFFFFFFF:
+            continue
+
+        for r in range(4):
+            shift = r * 8
+            read_req  = (flmstr >> (shift + 0)) & 0x7   # bits [2:0]
+            write_req = (flmstr >> (shift + 4)) & 0x7   # bits [6:4]
+
+            if read_req != 0:
+                region_read[r].add(read_req)
+            if write_req != 0:
+                region_write[r].add(write_req)
+
+    return [
+        IfdRegionAccess(
+            region_index=r,
+            region_name=REGION_NAMES.get(r, f"REG{r}"),
+            read_masters=sorted(region_read[r]),
+            write_masters=sorted(region_write[r]),
+        )
+        for r in range(4)
+    ]
+
+
+def parse_ifd_components(data: bytes, fcba_offset: int) -> list:
+    """Parse FLCOMP register from the Component Section.
+
+    The FLCOMP register (4 bytes at FCBA) describes the attached flash
+    components:
+
+        bits [2:0]   = Component 0 Density (encoded as 2^N bytes)
+        bits [4:3]   = reserved
+        bits [6:5]   = Read Clock Frequency
+        bits [9:7]   = Fast Read is available + Fast Read Clock Frequency
+        bits [11:10] = reserved
+        bits [13:12] = Component 1 Density
+        bits [14]    = Dual Output Fast Read support
+        bits [15]    = Read Status Register support
+        bits [16]    = Full Chip Erase support
+        bits [19:17] = reserved
+        bits [22:20] = Flash Partition Boundary (1 << N MB)
+        bits [30:24] = Number of components (0 = one, 1 = two)
+        bits [31]    = reserved
+
+    Returns:
+        List of IfdComponentInfo (typically 1-2 entries).
+    """
+    if fcba_offset + 4 > len(data):
+        return []
+
+    flcomp = struct.unpack_from('<I', data, fcba_offset)[0]
+
+    # Component 0 density
+    dens0_enc = flcomp & 0x7
+    dens0_mb = (1 << dens0_enc) // (1024 * 1024) if dens0_enc < 7 else 64
+
+    # Component 1 density (bits [13:12])
+    dens1_enc = (flcomp >> 12) & 0x3
+    if dens1_enc == 0:
+        dens1_mb = 0  # not populated
+    else:
+        dens1_mb = (1 << (dens1_enc + 1)) // (1024 * 1024)
+
+    # Number of components (bits [30:24])
+    num_components = ((flcomp >> 24) & 0x7F) + 1
+
+    # Invalid instruction opcodes: FLILL at FCBA + 4
+    ill_off = fcba_offset + 4
+    if ill_off + 4 <= len(data):
+        flill = struct.unpack_from('<I', data, ill_off)[0]
+        invalid_instr0 = flill & 0xFF          # COMP0 Invalid Instruction 0
+        invalid_instr1 = (flill >> 8) & 0xFF   # COMP0 Invalid Instruction 1
+    else:
+        invalid_instr0 = 0
+        invalid_instr1 = 0
+
+    comps = [IfdComponentInfo(
+        density_mb=dens0_mb,
+        number_of_components=num_components,
+        invalid_instr0=invalid_instr0,
+        invalid_instr1=invalid_instr1,
+    )]
+    if dens1_mb > 0:
+        comps.append(IfdComponentInfo(
+            density_mb=dens1_mb,
+            number_of_components=num_components,
+            invalid_instr0=((flill >> 16) & 0xFF) if ill_off + 8 <= len(data) else 0,
+            invalid_instr1=((flill >> 24) & 0xFF) if ill_off + 8 <= len(data) else 0,
+        ))
+
+    return comps
+
+
+def validate_descriptor_checksum(data: bytes) -> bool:
+    """Validate the IFD descriptor checksum (16-bit sum of bytes 0x00-0x4B).
+
+    The checksum is stored at offset 0x4C (2 bytes, little-endian).
+    The sum covers bytes 0x00 through 0x4B (76 bytes), wrapping at 16 bits.
+    """
+    if len(data) < 0x4E:
+        return False
+    expected = struct.unpack_from('<H', data, 0x4C)[0]
+    # Sum bytes 0x00-0x4B as 16-bit words (but byte-level sum works the same)
+    total = sum(data[0x00:0x4C]) & 0xFFFF
+    return total == expected
+
+
+def is_descriptor_locked(data: bytes) -> bool:
+    """Check the Flash Descriptor Lock bit.
+
+    Offset 0x00, bit 1:
+        0 = descriptor is LOCKED (read-only)
+        1 = descriptor is UNLOCKED (writable)
+
+    Returns True if the descriptor is locked (secure).
+    """
+    if len(data) < 1:
+        return False
+    return (data[0] & 0x02) == 0
+
+
+def _read_ifd_section_offset(data: bytes, map_offset: int) -> int:
+    """Read a section base address field and return byte offset in SPI."""
+    raw = struct.unpack_from('<I', data, map_offset)[0]
+    return (raw & 0xFF) * 4
+
+
+def audit_flash_descriptor(data: bytes) -> IfdSecurityReport:
+    """Full IFD security audit against NIST SP 800-147 §4.3.
+
+    Args:
+        data: Full SPI dump bytes.
+
+    Returns:
+        IfdSecurityReport with status, regions, master access, and verdict.
+    """
+    # ── 1) Early detection: no IFD → return immediately ──────────────────
+    if len(data) < 0x54:
+        return IfdSecurityReport(
+            status="not_detected",
+            summary="File too small for Intel Flash Descriptor (< 84 bytes) — expected full SPI dump",
+            flash_size=len(data),
+        )
+    if struct.unpack_from('<I', data, 0x10)[0] != FLVALSIG:
+        return IfdSecurityReport(
+            status="not_detected",
+            summary="No Intel Flash Descriptor signature found at offset 0x10 — not a full SPI dump or FLVALSIG missing",
+            flash_size=len(data),
+        )
+
+    # ── 2) Read section offsets ─────────────────────────────────────────
+    fcba  = _read_ifd_section_offset(data, IFD_FCBA_OFFSET)
+    frba  = _read_ifd_section_offset(data, IFD_FRBA_OFFSET)
+    fmba  = _read_ifd_section_offset(data, 0x38)
+    _fisba = _read_ifd_section_offset(data, 0x3C)   # future: ICH straps audit
+    _fmsba = _read_ifd_section_offset(data, 0x40)   # future: MCH straps audit
+
+    issues: list[str] = []
+
+    # Validate mandatory sections
+    if fcba == 0 or frba == 0:
+        return IfdSecurityReport(
+            status="not_detected",
+            summary="IFD signature found but mandatory sections (FCBA/FRBA) are missing — descriptor may be corrupted",
+            flash_size=len(data),
+            issues=["FCBA or FRBA offset is zero"],
+        )
+
+    # ── 3) Validate descriptor integrity ────────────────────────────────
+    checksum_ok = validate_descriptor_checksum(data)
+    locked = is_descriptor_locked(data)
+
+    if not checksum_ok:
+        issues.append("Descriptor checksum is invalid — IFD may be corrupted or tampered with")
+    if not locked:
+        issues.append("Flash Descriptor is NOT locked — regions can be reprogrammed")
+
+    # ── 4) Parse structures ─────────────────────────────────────────────
+    regions = parse_ifd_regions(data, frba)
+    master_access = parse_ifd_master_access(data, fmba)
+    components = parse_ifd_components(data, fcba)
+
+    # BIOS region access is always entry 0
+    bios_access = master_access[0] if len(master_access) > 0 else None
+
+    # ── 5) Non-bypassability check (NIST 800-147 §4.3) ──────────────────
+    bios_writable_by_me = False
+    bios_writable_by_ec = False
+    bios_write_protected = True
+
+    if bios_access is not None:
+        bios_wm = set(bios_access.write_masters)
+        # Master ID 2 = ME, Master ID 3 = EC
+        bios_writable_by_me = 2 in bios_wm
+        bios_writable_by_ec = 3 in bios_wm
+        bios_write_protected = len(bios_wm) == 1 and 1 in bios_wm  # only CPU
+
+    if bios_writable_by_me:
+        issues.append("ME (Management Engine) has WRITE access to BIOS region — NIST 800-147 §4.3 violation")
+    if bios_writable_by_ec:
+        issues.append("EC (Embedded Controller) has WRITE access to BIOS region — NIST 800-147 §4.3 violation")
+
+    # Check if non-CPU masters can write to any region (informational)
+    if bios_access is not None and len(bios_access.write_masters) > 1:
+        masters = [_MASTER_NAMES.get(m, str(m)) for m in bios_access.write_masters if m != 1]
+        issues.append(f"Multiple masters have BIOS write access: {', '.join(masters)}")
+
+    # ── 6) Determine verdict ────────────────────────────────────────────
+    non_bypassability_pass = (
+        bios_write_protected
+        and locked
+        and checksum_ok
+        and not bios_writable_by_me
+        and not bios_writable_by_ec
+    )
+
+    if not bios_write_protected:
+        # ME or EC (or other non-CPU master) can write BIOS region
+        status = "non_compliant"
+    elif not bios_write_protected:
+        status = "non_compliant"
+    elif bios_write_protected and (not locked or not checksum_ok):
+        status = "partial"
+    elif bios_write_protected and locked and checksum_ok:
+        status = "compliant"
+    else:
+        status = "non_compliant"
+
+    # ── 7) Compute flash size and physical base ──────────────────────────
+    max_region_end = 0
+    for r in regions:
+        if r.is_populated:
+            end = r.offset + r.size
+            if end > max_region_end:
+                max_region_end = end
+    flash_size = max(len(data), max_region_end)
+    physical_base = 0x1_0000_0000 - flash_size if flash_size <= 0x1_0000_0000 else 0
+
+    if len(data) < flash_size:
+        issues.append(f"Dump may be truncated (0x{len(data):X} < 0x{flash_size:X})")
+
+    summary_parts = [f"IFD Security: {status.upper()}"]
+    if bios_access is not None:
+        summary_parts.append(f"BIOS write masters: {[_MASTER_NAMES.get(m, str(m)) for m in bios_access.write_masters]}")
+    if not locked:
+        summary_parts.append("descriptor unlocked")
+    if not checksum_ok:
+        summary_parts.append("checksum invalid")
+    summary = "; ".join(summary_parts)
+
+    return IfdSecurityReport(
+        status=status,
+        flash_size=flash_size,
+        physical_base=physical_base,
+        regions=regions,
+        master_access=master_access,
+        components=components,
+        descriptor_locked=locked,
+        descriptor_checksum_valid=checksum_ok,
+        bios_writable_by_me=bios_writable_by_me,
+        bios_writable_by_ec=bios_writable_by_ec,
+        non_bypassability_pass=non_bypassability_pass,
+        issues=issues,
+        summary=summary,
+    )
+
+
+def _ifd_report_to_dict(report: IfdSecurityReport) -> dict:
+    """Convert IfdSecurityReport to a JSON-serializable dict for the CLI/GUI."""
+    return {
+        "status": report.status,
+        "flash_size": report.flash_size,
+        "physical_base": f"0x{report.physical_base:016X}" if report.physical_base else "0x0000000000000000",
+        "descriptor_locked": report.descriptor_locked,
+        "descriptor_checksum_valid": report.descriptor_checksum_valid,
+        "non_bypassability_pass": report.non_bypassability_pass,
+        "bios_writable_by_me": report.bios_writable_by_me,
+        "bios_writable_by_ec": report.bios_writable_by_ec,
+        "regions": [
+            {
+                "index": r.index,
+                "name": r.name,
+                "offset": f"0x{r.offset:08X}",
+                "size": r.size,
+                "size_formatted": f"0x{r.size:X}" if r.size else "N/A",
+                "is_populated": r.is_populated,
+            }
+            for r in report.regions
+        ],
+        "master_access": [
+            {
+                "region": ma.region_name,
+                "read_masters": [_MASTER_NAMES.get(m, f"Master{m}") for m in ma.read_masters],
+                "write_masters": [_MASTER_NAMES.get(m, f"Master{m}") for m in ma.write_masters],
+            }
+            for ma in report.master_access
+        ],
+        "components": [
+            {
+                "density_mb": c.density_mb,
+                "number_of_components": c.number_of_components,
+            }
+            for c in report.components
+        ],
+        "issues": report.issues,
+        "summary": report.summary,
     }
 
 

@@ -26,6 +26,7 @@ class ModelEntry:
     size_mb: float = 0.0
     sha256: str = ""
     regions: List[Dict] = None
+    me_info: Dict = None
     notes: str = ""
     source_file: str = ""
     analysis_date: str = ""
@@ -107,6 +108,27 @@ def analysis_to_model(analysis_path: Path, bin_path: Path) -> ModelEntry:
             "entropy": r["entropy"]
         })
     
+    # Extract ME info if available (for hash cache)
+    me_info = None
+    if data.get("me_info") and data["me_info"].get("found"):
+        mi = data["me_info"]
+        me_info = {
+            "version": mi.get("version", ""),
+            "version_major": mi.get("version_major", 0),
+            "version_minor": mi.get("version_minor", 0),
+            "version_hotfix": mi.get("version_hotfix", 0),
+            "version_build": mi.get("version_build", 0),
+            "platform": mi.get("platform", ""),
+            "release_type": mi.get("release_type", ""),
+            "sku_size": mi.get("sku_size", ""),
+            "me_type": mi.get("me_type", ""),
+            "svn": mi.get("svn", 0),
+            "vcn": mi.get("vcn", 0),
+            "production_ready": mi.get("production_ready", False),
+            "build_date": mi.get("build_date", ""),
+            "locked": mi.get("locked", False),
+        }
+
     return ModelEntry(
         vendor=data.get("detected_vendor", "Unknown"),
         model=data.get("detected_model", "Unknown"),
@@ -117,6 +139,7 @@ def analysis_to_model(analysis_path: Path, bin_path: Path) -> ModelEntry:
         size_mb=round(data.get("file_size", 0) / 1024 / 1024, 2),
         sha256=data.get("sha256", ""),
         regions=regions,
+        me_info=me_info,
         source_file=bin_path.name,
     )
 

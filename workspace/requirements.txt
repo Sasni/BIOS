@@ -1,7 +1,12 @@
 # BIOS Analysis Toolkit - Requirements
-# Core dependencies (stdlib only for now)
-# Optional: install these for enhanced functionality
-# pip install uefi-firmware-parser python-magic construct pycryptodome
+
+# Core
+flask>=2.0
+
+# Optional: SecureBoot X.509 certificate parsing
+# Without this, secureboot_audit.py will still work but won't decode
+# certificate subjects, issuers, validity, or key details.
+cryptography>=41.0
 
 # For UEFI parsing (optional, more advanced)
 # uefi-firmware-parser>=1.0

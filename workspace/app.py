@@ -185,7 +185,7 @@ def api_analyze(relpath):
 
     # ── parse_bios.py: writes JSON to file ──
     parse_json_path = PARSED_DIR / f"{abs_path.stem}.analysis.json"
-    parse_result = _run_tool("parse_bios.py", str(abs_path), "-o", str(parse_json_path))
+    parse_result = _run_tool("parse_bios.py", "--no-redact", str(abs_path), "-o", str(parse_json_path))
     parse_data = None
     if parse_json_path.exists():
         try:
@@ -221,6 +221,24 @@ def api_analyze(relpath):
         except (json.JSONDecodeError, Exception):
             nvar_data = {"text": nvar_raw["stdout"]}
 
+    # ── fd_audit.py: Flash Descriptor Security Audit (NIST 800-147) ──
+    fd_data = None
+    fd_raw = _run_tool("fd_audit.py", "--json", str(abs_path))
+    if fd_raw.get("stdout"):
+        try:
+            fd_data = json.loads(fd_raw["stdout"])
+        except (json.JSONDecodeError, Exception):
+            fd_data = {"text": fd_raw["stdout"]}
+
+    # ── secureboot_audit.py: UEFI SecureBoot Audit ──
+    sb_data = None
+    sb_raw = _run_tool("secureboot_audit.py", "--json", str(abs_path))
+    if sb_raw.get("stdout"):
+        try:
+            sb_data = json.loads(sb_raw["stdout"])
+        except (json.JSONDecodeError, Exception):
+            sb_data = {"text": sb_raw["stdout"]}
+
     return jsonify({
         "file": relpath,
         "sha256": _sha256(str(abs_path)),
@@ -233,6 +251,8 @@ def api_analyze(relpath):
         "fit": fit_data,
         "nvram": nvram_data,
         "nvar": nvar_data,
+        "fd_audit": fd_data,
+        "secureboot": sb_data,
     })
 
 
@@ -546,6 +566,231 @@ def api_nvram_reset():
         "cleared_bytes": cleared,
         "original_sha256": hashlib.sha256(abs_path.read_bytes()).hexdigest(),
         "repaired_sha256": hashlib.sha256(repaired_data).hexdigest(),
+    })
+
+
+@app.route("/api/fd-audit/<path:relpath>")
+def api_fd_audit(relpath):
+    """Flash Descriptor Security Audit (NIST SP 800-147 §4.3)."""
+    relpath = _sanitize_relpath(relpath)
+    abs_path = _resolve_file(relpath)
+    if abs_path is None:
+        return jsonify({"error": "File not found"}), 404
+    raw = _run_tool("fd_audit.py", "--json", str(abs_path))
+    data = None
+    if raw.get("stdout"):
+        try:
+            data = json.loads(raw["stdout"])
+        except (json.JSONDecodeError, Exception):
+            data = {"text": raw["stdout"]}
+    return jsonify({
+        "file": relpath,
+        "data": data,
+        "exit_code": raw.get("exit_code", -1),
+    })
+
+
+@app.route("/api/secureboot/<path:relpath>")
+def api_secureboot(relpath):
+    """UEFI SecureBoot Auditor (NIST SP 800-147 + SP 800-155)."""
+    relpath = _sanitize_relpath(relpath)
+    abs_path = _resolve_file(relpath)
+    if abs_path is None:
+        return jsonify({"error": "File not found"}), 404
+    raw = _run_tool("secureboot_audit.py", "--json", str(abs_path))
+    data = None
+    if raw.get("stdout"):
+        try:
+            data = json.loads(raw["stdout"])
+        except (json.JSONDecodeError, Exception):
+            data = {"text": raw["stdout"]}
+    return jsonify({
+        "file": relpath,
+        "data": data,
+        "exit_code": raw.get("exit_code", -1),
+    })
+
+
+# ── Single-variable editor (var_edit.py) ──────────────────────────────────────
+
+def _var_edit_module():
+    """Lazy import of var_edit.py helpers (needs tools/ on sys.path)."""
+    sys.path.insert(0, str(TOOLS_DIR))
+    import var_edit
+    return var_edit
+
+
+def _int_param(value, what: str, default=None):
+    """Parse a query/form integer that may be hex (0x…) or decimal."""
+    if value is None or value == "":
+        if default is None:
+            raise ValueError(f"Missing {what}")
+        return default
+    text = str(value).strip()
+    try:
+        return int(text, 16) if text.lower().startswith("0x") else int(text, 10)
+    except ValueError:
+        raise ValueError(f"Invalid {what}: '{value}' (use decimal or 0x hex)")
+
+
+@app.route("/api/var/list/<path:relpath>")
+def api_var_list(relpath):
+    """List NVAR/VSS/EVSA variables of a dump (friendly fields for GUI)."""
+    relpath = _sanitize_relpath(relpath)
+    abs_path = _resolve_file(relpath)
+    if abs_path is None:
+        return jsonify({"ok": False, "error": "File not found"}), 404
+    ve = _var_edit_module()
+    try:
+        result, variables = ve.list_nvar(abs_path.read_bytes())
+    except ve.OpError as e:
+        return jsonify({"ok": False, "found": False, "error": str(e),
+                        "file": relpath}), 200
+    rows = [{
+        "rec": v.offset,
+        "name": v.name,
+        "fmt": v.fmt,
+        "total_size": v.total_size,
+        "data_size": v.data_size,
+        "state": f"0x{v.state:06X}",
+        "state_label": "active" if v.state == 0xFFFFFF else "deleted",
+        "guid": v.guid.hex() if v.guid else None,
+        "attrs": v.attrs,
+        "store_start": v.store_start,
+    } for v in variables]
+    return jsonify({
+        "ok": True,
+        "found": True,
+        "file": relpath,
+        "total": len(rows),
+        "formats": result.formats,
+        "region_start": result.region_start,
+        "region_end": result.region_end,
+        "variables": rows,
+    })
+
+
+@app.route("/api/var/read/<path:relpath>")
+def api_var_read(relpath):
+    """Read bytes from a single variable's data area."""
+    relpath = _sanitize_relpath(relpath)
+    abs_path = _resolve_file(relpath)
+    if abs_path is None:
+        return jsonify({"error": "File not found"}), 404
+    try:
+        name = request.args.get("name", "")
+        rec = _int_param(request.args.get("rec"), "record offset", None)
+        offset = _int_param(request.args.get("offset"), "offset", 0)
+        size = _int_param(request.args.get("size"), "size", 16)
+        if not name and rec is None:
+            return jsonify({"ok": False, "error": "Missing 'name' or 'rec'"}), 400
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+    ve = _var_edit_module()
+    try:
+        data = abs_path.read_bytes()
+        _, variables = ve.list_nvar(data)
+        op = {"name": name, "rec": rec, "offset": offset,
+              "size": size, "value": None}
+        v = ve.resolve_var(variables, op)
+        raw = ve.read_value(data, v, offset, size)
+    except ve.OpError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    start, end = ve._var_span(v)
+    return jsonify({
+        "ok": True,
+        "name": v.name,
+        "rec": v.offset,
+        "offset": offset,
+        "size": len(raw),
+        "raw_hex": raw.hex(" "),
+        "int_le": int.from_bytes(raw, "little"),
+        "data_area_start": start,
+        "data_area_end": end,
+    })
+
+
+@app.route("/api/var/write", methods=["POST"])
+def api_var_write():
+    """Apply single-variable edits, always producing a NEW copy of the dump.
+
+    Body: {relpath, ops: [{name, rec?, offset, size, value}],
+           simulate?: bool}
+    - simulate=true returns the preview (old -> new) and writes nothing.
+    - simulate=false writes <stem>_varedit.bin next to the input file.
+    """
+    payload = request.get_json()
+    if not payload:
+        return jsonify({"error": "No JSON body"}), 400
+    relpath = payload.get("relpath")
+    raw_ops = payload.get("ops")
+    if not relpath:
+        return jsonify({"error": "Missing relpath"}), 400
+    if not isinstance(raw_ops, list) or not raw_ops:
+        return jsonify({"error": "Missing ops list"}), 400
+    simulate = bool(payload.get("simulate", False))
+
+    abs_path = _resolve_file(_sanitize_relpath(relpath))
+    if abs_path is None:
+        return jsonify({"error": f"File not found: {relpath}"}), 404
+
+    ve = _var_edit_module()
+    ops = []
+    try:
+        for raw in raw_ops:
+            if not isinstance(raw, dict) or "value" not in raw:
+                raise ve.OpError("each op needs name/rec, offset, size, value")
+            name = str(raw.get("name", ""))
+            rec = raw.get("rec")
+            if rec is not None:
+                rec = _int_param(rec, "record offset")
+            offset = _int_param(raw.get("offset"), "offset")
+            size = _int_param(raw.get("size"), "size")
+            value = raw.get("value")
+            # value may be int or "0x…" string (JS cannot hold 64-bit ints)
+            if isinstance(value, str):
+                value = _int_param(value, "value")
+            if not isinstance(value, int):
+                raise ve.OpError(f"value must be an integer: {value!r}")
+            if not 1 <= size <= 8:
+                raise ve.OpError(f"size {size} out of range 1..8")
+            if value < 0 or value >= 1 << (8 * size):
+                raise ve.OpError(
+                    f"value 0x{value:X} does not fit in {size} byte(s)")
+            ops.append({"name": name, "rec": rec, "offset": offset,
+                        "size": size, "value": value})
+    except ve.OpError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+    output_path = None
+    if not simulate:
+        output_path = abs_path.parent / f"{abs_path.stem}_varedit.bin"
+
+    data = abs_path.read_bytes()
+    res = ve.execute(data, ops, output_path=output_path, simulate=simulate)
+
+    if res["error"]:
+        code = 400 if not simulate else 200
+        return jsonify({"ok": False, "error": res["error"]}), code
+
+    out_rel = None
+    if res.get("output_path"):
+        out_rel = str(Path(res["output_path"]).relative_to(BIOS_DIR))
+
+    return jsonify({
+        "ok": True,
+        "simulate": simulate,
+        "writes": res["writes"],
+        "reads": res["reads"],
+        "plan_lines": res["plan_lines"],
+        "changed_bytes": res.get("changed_bytes", 0),
+        "crc_updated": res.get("crc_updated", False),
+        "output_relpath": out_rel,
+        "output_name": Path(out_rel).name if out_rel else None,
+        "output_sha256": res.get("output_sha256"),
     })
 
 

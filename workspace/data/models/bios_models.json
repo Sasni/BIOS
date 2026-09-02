@@ -859,5 +859,31 @@
     "notes": "",
     "source_file": "test_bios_repaired.bin",
     "analysis_date": "2026-06-10T20:14:06.194539"
+  },
+  {
+    "vendor": "HP",
+    "model": "800 G1 AIO",
+    "bios_version": "",
+    "bios_date": "",
+    "board_id": "",
+    "sha256": "0d0759e015e6c633fa52093c7d3af2ef220c71d48a28059c9b1cbbb438aaaec4",
+    "source_file": "../data/raw/HP 800 G1 AIO GRAIL GALAHAD AMBROSE MB 12023-3 348.01503.0031 MX25L12805D@SOP16_20211226_110902.BIN-new_5.bin",
+    "me_info": {
+      "version": "9.0.3.1347",
+      "version_major": 9,
+      "version_minor": 0,
+      "version_hotfix": 3,
+      "version_build": 1347,
+      "platform": "LynxPoint",
+      "release_type": "Production",
+      "sku_size": "1.5MB",
+      "me_type": "Stock",
+      "svn": 1,
+      "vcn": 2,
+      "production_ready": true,
+      "build_date": "2013-04-11",
+      "locked": true,
+      "me_size": 1560576
+    }
   }
 ]

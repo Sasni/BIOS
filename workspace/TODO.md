@@ -38,9 +38,11 @@
 - [ ] Insyde H2O — VSS2 pełna obsługa (obecnie wykrywany jako VSS)
 
 ## Analiza zmiennych
-- [ ] EVSA: parsowanie pojedynczych zmiennych (EE-delimited) — obecnie tylko reset całego store
-- [ ] VSS: parsowanie pojedynczych zmiennych — obecnie tylko reset całego store
-- [ ] SecureBoot: PK, KEK, db, dbx — podgląd
+- [x] SecureBoot: PK, KEK, db, dbx — podgląd (secureboot_audit.py)
+- [x] Intel Flash Descriptor Security Audit — NIST 800-147 §4.3 (fd_audit.py)
+- [x] NVAR: edycja/odczyt pojedynczych zmiennych (var_edit.py, składnia UVT offline: Nazwa[@offset]:offset(size)[=wartość], simulate/-o/--plan/--apply, readback, walidacja obszaru)
+- [x] VSS (Insyde): parsowanie pojedynczych zmiennych w tej samej składni (wpisy AA55, NameSize/DataSize/GUID, warianty nazwa@+32/+60 auto)
+- [x] EVSA (Phoenix): parsowanie pojedynczych zmiennych w tej samej składni (wpisy EC/ED/EE/EF/83, GuidId/VarId, rozszerzone wpisy 0x10000000) — REKOMPUTACJA SUMY KONTROLNEJ WPISU przy zapisie; niezweryfikowane na żywym dumpie (w zbiorze tylko magazyny po resecie) — do walidacji
 - [ ] Setup / CpuSetup — podgląd
 - [ ] BootOrder / DriverOrder
 - [ ] Eksport zmiennych do pliku

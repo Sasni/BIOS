@@ -16,6 +16,8 @@ BIOS Analysis Toolkit — open-source tools for analyzing, identifying, and repa
 python bioskit.py parse bios.bin
 python bioskit.py diff original.bin repaired.bin
 python bioskit.py nvram corrupted.bin -o repaired.bin
+python bioskit.py var dump.bin AMITSESetup:0x0(16)           # read a variable
+python bioskit.py var dump.bin Setup:0x40(1)=0x01 -o out.bin # write (offline)
 
 # Or use the Web GUI
 python app.py
@@ -35,6 +37,7 @@ python app.py
 | `bios_finder` | Search BIOS setup variables from IFR text |
 | `ami_parser` | Extract modules from AMI BIOS (AMIBIOSC format, LH5 decompression) |
 | `reset_nvram` | Reset corrupted NVRAM to factory defaults (AMI NVAR + Insyde VSS) |
+| `var_edit` | Read/write single NVAR variables offline — UVT-style `Name:Offset(Size)=Value` grammar, simulate mode, re-playable plan files |
 | `me_clean_patch` | Apply ME region clean patch |
 
 ## Directory Structure
@@ -58,6 +61,7 @@ workspace/
 │   ├── bios_finder.py        # Search BIOS setup variables from IFR
 │   ├── ami_parser.py         # AMI BIOS module extractor (LH5 decompression)
 │   ├── reset_nvram.py        # NVRAM reset: AMI NVAR + Insyde VSS
+│   ├── var_edit.py           # Single-variable read/write: NVAR+VSS+EVSA (offline)
 │   └── patches/              # Documented repair patches
 ├── static/
 │   ├── css/style.css

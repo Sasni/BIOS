@@ -33,6 +33,27 @@ try:
 except ImportError:
     AMI_PARSER_AVAILABLE = False
 
+# Import ME parser
+try:
+    from me_parser import parse_me_region, me_info_to_dict
+    ME_PARSER_AVAILABLE = True
+except ImportError:
+    ME_PARSER_AVAILABLE = False
+
+# Import ME cache lookup
+try:
+    from me_cache import lookup_me_by_sha256
+    ME_CACHE_AVAILABLE = True
+except ImportError:
+    ME_CACHE_AVAILABLE = False
+
+# Import MEA.dat database lookup
+try:
+    from mea_lookup import lookup_me_region as mea_lookup_me_region
+    MEA_DB_AVAILABLE = True
+except ImportError:
+    MEA_DB_AVAILABLE = False
+
 # ─── Constants ────────────────────────────────────────────────────────────
 
 FFS_SIGNATURE = b'_FVH'
@@ -402,6 +423,7 @@ class BIOSInfo:
     smbios_structures: List[Dict] = field(default_factory=list)
     intel_me: Optional[Dict] = None
     gbe_region: Optional[Dict] = None
+    me_info: Optional[Dict] = None
     nvram_store: Optional[Dict] = None
     fit_table: Optional[Dict] = None
     ami_format: Optional[str] = None
@@ -411,8 +433,9 @@ class BIOSInfo:
     bios_version: str = "Unknown"
     bios_date: str = "Unknown"
     board_id: str = "Unknown"
-    serial_number: str = "REDACTED"
-    uuid: str = "REDACTED"
+    serial_number: str = ""
+    uuid: str = ""
+    windows_key: str = ""
     mac_addresses: List[str] = field(default_factory=list)
     compression: str = "none"
     analysis_timestamp: str = field(default_factory=lambda: datetime.utcnow().isoformat())
@@ -468,23 +491,28 @@ def read_cstring(data: bytes, offset: int, max_len: int = 256) -> str:
 
 def detect_dump_type(data: bytes) -> Tuple[str, Dict]:
     info = {"signatures": {}}
-    has_ifd = data[0:4] == b'\x00\x00\x00\x00' or data[0:4] == b'IFD\x00'
-    
+    # IFD detection: check both the legacy bytes 0-3 AND FLVALSIG at 0x10
+    has_ifd = (data[0:4] == b'\x00\x00\x00\x00' or data[0:4] == b'IFD\x00')
+    if not has_ifd and len(data) >= 0x14:
+        flvalsig = struct.unpack_from('<I', data, 0x10)[0]
+        has_ifd = (flvalsig == 0x0FF0A55A)  # FLVALSIG present = IFD exists
+
     fvh_positions = find_all(data, FFS_SIGNATURE)
     info["signatures"]["FVH"] = len(fvh_positions)
-    
+
     smbios32_pos = find_all(data, SMBIOS32_SIGNATURE)
     smbios64_pos = find_all(data, SMBIOS64_SIGNATURE)
     info["signatures"]["SMBIOS32"] = len(smbios32_pos)
     info["signatures"]["SMBIOS64"] = len(smbios64_pos)
-    
+
     info["signatures"]["ME"] = len(find_all(data, b'ME\x00\x00'))
     info["signatures"]["GBE"] = len(find_all(data, b'GBE\x00'))
     info["signatures"]["NVRAM"] = len(find_all(data, b'NVRA'))
-    
+
     starts_with_mac = len(data) >= 6 and (data[0] & 0x01) == 0 and data[:6] != b'\x00'*6
-    
-    if has_ifd and (info["signatures"]["ME"] > 0 or info["signatures"]["GBE"] > 0):
+
+    # Full SPI: has IFD (by any detection method) + reasonable size
+    if has_ifd and len(data) >= 0x400000:  # >= 4 MB = likely full SPI
         dump_type = "full_spi"
     elif info["signatures"]["FVH"] > 0 and info["signatures"]["SMBIOS32"] + info["signatures"]["SMBIOS64"] > 0:
         dump_type = "full_spi"
@@ -496,7 +524,7 @@ def detect_dump_type(data: bytes) -> Tuple[str, Dict]:
         dump_type = "me_region"
     else:
         dump_type = "unknown"
-    
+
     return dump_type, info
 
 # ─── Region Detection ─────────────────────────────────────────────────────
@@ -890,6 +918,21 @@ def analyze_bios(file_path: Path) -> BIOSInfo:
     info.board_id = meta["board_id"]
     info.smbios_structures.append(meta)
 
+    # Extract serial number from SMBIOS
+    serial = extract_serial_from_smbios(data)
+    if serial:
+        info.serial_number = serial
+        print(f"    Serial: {serial}")
+    # Extract UUID from SMBIOS Type 1 (offset 8, 16 bytes)
+    uuid_str = _extract_smbios_uuid(data)
+    if uuid_str:
+        info.uuid = uuid_str
+    # Extract Windows product key from MSDM table
+    win_key = extract_msdm_key(data)
+    if win_key:
+        info.windows_key = win_key
+        print(f"    Windows key: found")
+
     # AMI BIOS module extraction (AMIBIOSC-based)
     if AMI_PARSER_AVAILABLE:
         print("[*] Checking for AMI BIOS structure...")
@@ -1005,7 +1048,52 @@ def analyze_bios(file_path: Path) -> BIOSInfo:
         
         print("[*] Building region map...")
         info.regions = build_spi_region_map(data, info)
-        
+
+        # Parse Intel ME region details (version, FPT, SKU)
+        if ME_PARSER_AVAILABLE:
+            me_region = next((r for r in info.regions if r.name == "ME"), None)
+            if me_region and me_region.size > 0x100:
+                print("[*] Parsing Intel ME region...")
+                me_data = data[me_region.offset:me_region.offset + me_region.size]
+                me_result = parse_me_region(me_data, me_offset=me_region.offset)
+                info.me_info = me_info_to_dict(me_result)
+                if me_result.found:
+                    print(f"    ME v{me_result.version} ({me_result.platform}), SKU: {me_result.sku_size}")
+                else:
+                    print(f"    ME FPT not found — region may be empty or cleaned")
+                    # Try MEA.dat lookup (SHA256 of ME region blob)
+                    mea_entry = None
+                    if MEA_DB_AVAILABLE:
+                        mea_entry = mea_lookup_me_region(me_data)
+                        if mea_entry:
+                            print(f"    ME identified via MEA.dat: v{mea_entry['version']} ({mea_entry.get('platform','?')})")
+                            info.me_info["found"] = True
+                            info.me_info["version"] = mea_entry["version"]
+                            info.me_info["version_major"] = mea_entry["version_major"]
+                            info.me_info["version_minor"] = mea_entry["version_minor"]
+                            info.me_info["version_hotfix"] = mea_entry["version_hotfix"]
+                            info.me_info["version_build"] = mea_entry["version_build"]
+                            info.me_info["platform"] = mea_entry.get("platform", "")
+                            info.me_info["sku_size"] = mea_entry.get("sku_size", "")
+                            info.me_info["release_type"] = mea_entry.get("release_type", "")
+                            info.me_info["svn"] = 0  # Not in MEA.dat
+                            info.me_info["vcn"] = 0
+                            info.me_info["production_ready"] = (mea_entry.get("status") == "PRD")
+                            info.me_info["me_type"] = "Region, Stock"
+                            info.me_info["from_mea_db"] = True
+                    # Fallback: SHA256 of full SPI dump (for cleaned ME)
+                    if not mea_entry and ME_CACHE_AVAILABLE:
+                        cached = lookup_me_by_sha256(info.sha256)
+                        if cached:
+                            print(f"    ME info from cache: v{cached.get('version', '?')}")
+                            cached["from_database"] = True
+                            # Merge with parsed structural info
+                            cached["me_region_offset"] = info.me_info.get("me_region_offset", "0x0")
+                            cached["me_region_size"] = info.me_info.get("me_region_size", 0)
+                            cached["me_region_size_formatted"] = info.me_info.get("me_region_size_formatted", "?")
+                            cached["found"] = True
+                            info.me_info = cached
+
     elif dump_type == "bios_region":
         print("[*] Scanning for UEFI volumes in BIOS region...")
         info.uefi_volumes = scan_uefi_volumes(data)
@@ -1111,7 +1199,212 @@ def build_spi_region_map(data: bytes, info: BIOSInfo) -> List[RegionInfo]:
 
 # ─── Redaction & Output ──────────────────────────────────────────────────
 
+def _extract_smbios_uuid(data: bytes) -> str:
+    """Extract system UUID from SMBIOS Type 1 structure.
+
+    UUID is at offset 8 (16 bytes) inside the Type 1 (System Information) structure.
+    Returns formatted UUID string or empty string.
+    """
+    for sig in (b'_SM_', b'_SM3_'):
+        pos = data.find(sig)
+        if pos == -1:
+            continue
+
+        if sig == b'_SM_':
+            if pos + 31 > len(data):
+                continue
+            table_addr = struct.unpack_from('<I', data, pos + 24)[0]
+            table_len = struct.unpack_from('<H', data, pos + 22)[0]
+        else:
+            if pos + 23 > len(data):
+                continue
+            table_addr = struct.unpack_from('<Q', data, pos + 16)[0]
+            table_len = struct.unpack_from('<I', data, pos + 12)[0]
+
+        if table_addr <= 0 or table_addr + table_len > len(data):
+            continue
+
+        offset = table_addr
+        while offset < table_addr + table_len - 4:
+            struct_type = data[offset]
+            struct_len = data[offset + 1]
+            if struct_len < 4 or struct_type == 127:
+                break
+
+            if struct_type == 1 and struct_len >= 25:
+                uuid_bytes = data[offset + 8:offset + 24]
+                if len(uuid_bytes) == 16 and uuid_bytes != b'\x00' * 16 and uuid_bytes != b'\xff' * 16:
+                    u = uuid_bytes
+                    return f'{u[0:4].hex().upper()}-{u[4:6].hex().upper()}-{u[6:8].hex().upper()}-{u[8:10].hex().upper()}-{u[10:16].hex().upper()}'
+                break
+
+            offset += struct_len
+            while offset < table_addr + table_len and data[offset:offset+2] != b'\x00\x00':
+                offset += 1
+            offset += 2
+        break
+
+    return ""
+
+
+def extract_msdm_key(data: bytes) -> Optional[str]:
+    """Extract Windows product key from MSDM ACPI table or SLIC marker.
+
+    Two formats are supported:
+
+    1. MSDM table (Windows 8+):
+       Signature 'MSDM' → ACPI table → SLS structure → Unicode key
+
+    2. SLIC / OEM marker (Windows 7, some Windows 8):
+       Binary marker:
+         01 00 00 00          ← version 1
+         00 00 00 00          ← reserved
+         01 00 00 00          ← data type (1 = OEM key)
+         00 00 00 00          ← reserved
+         NN 00 00 00          ← key data length (typically 0x1D = 29)
+       Followed by the key bytes (UTF-16LE encoded, 29 bytes → 29 characters
+       for a standard 25-char key like XXXXX-XXXXX-XXXXX-XXXXX-XXXXX)
+
+    Returns the product key as a string (e.g. 'XXXXX-XXXXX-...'), or None.
+    """
+
+    # ── Method 1: MSDM ACPI table (Windows 8+) ─────────────────────────
+    sig = b'MSDM'
+    pos = data.find(sig)
+    if pos >= 0 and pos + 55 <= len(data):
+        try:
+            length = struct.unpack_from('<I', data, pos + 4)[0]
+        except struct.error:
+            length = 0
+        if 40 <= length <= 200 and pos + length <= len(data):
+            # SLS at offset 36; key data at offset 49 (13 bytes into SLS)
+            key_off = pos + 49
+            key_len_avail = length - 49
+            if key_len_avail >= 25:
+                key_bytes = data[key_off:key_off + key_len_avail]
+                try:
+                    key_str = key_bytes.decode('utf-16-le').rstrip('\x00').strip()
+                except UnicodeDecodeError:
+                    key_str = key_bytes.decode('ascii', errors='ignore').split('\x00')[0].strip()
+                if key_str and 25 <= len(key_str) <= 50:
+                    return key_str
+
+    # ── Method 2: SLIC/OEM binary marker (Windows 7 era) ────────────────
+    # Pattern: 01 00 00 00  00 00 00 00  01 00 00 00  00 00 00 00  NN 00 00 00
+    marker = bytes([0x01,0x00,0x00,0x00, 0x00,0x00,0x00,0x00,
+                    0x01,0x00,0x00,0x00, 0x00,0x00,0x00,0x00])
+    pos = 0
+    while True:
+        pos = data.find(marker, pos)
+        if pos == -1:
+            break
+
+        # Read the data length field (u32 LE) that follows the marker
+        if pos + 24 <= len(data):
+            key_len = struct.unpack_from('<I', data, pos + 16)[0]
+            # Standard OEM key: 29 Unicode chars = 58 bytes (with null terminator)
+            # Some BIOSes use different lengths; accept 20-80 byte range
+            if 20 <= key_len <= 80:
+                key_off = pos + 20
+                if key_off + key_len <= len(data):
+                    key_bytes = data[key_off:key_off + key_len]
+                    # Try ASCII first (some BIOSes store key as ASCII), then UTF-16LE
+                    for codec in ('ascii', 'utf-16-le'):
+                        try:
+                            key_str = key_bytes.decode(codec).rstrip('\x00').strip()
+                        except (UnicodeDecodeError, UnicodeError):
+                            continue
+                        # Check if looks like a real key (alphanumeric + hyphens)
+                        clean = key_str.replace('-', '').rstrip('\xff')
+                        if clean.isascii() and clean.replace('-','').isalnum() and 24 <= len(clean) <= 50:
+                            return key_str.rstrip('\xff').strip()
+            # Also try exact 29-byte variant (standard OEM key length)
+            if key_len == 0x1D:
+                key_bytes2 = data[pos + 20:pos + 20 + 29]
+                for codec in ('ascii', 'utf-16-le'):
+                    try:
+                        key_str2 = key_bytes2.decode(codec).rstrip('\x00').strip()
+                    except:
+                        continue
+                    if key_str2 and 24 <= len(key_str2) <= 30 and key_str2[:5].isalnum():
+                        return key_str2
+        pos += 1  # continue searching after this match
+
+
+def extract_serial_from_smbios(data: bytes) -> str:
+    """Extract system serial number from SMBIOS Type 1 structure."""
+    signature = b'_SM_'
+    pos = data.find(signature)
+    if pos == -1:
+        signature = b'_SM3_'
+        pos = data.find(signature)
+    if pos == -1:
+        return ""
+
+    # SMBIOS entry point: parse table address
+    if data[pos:pos+4] == b'_SM_':
+        if pos + 31 > len(data):
+            return ""
+        table_addr = struct.unpack_from('<I', data, pos + 24)[0]
+        table_len = struct.unpack_from('<H', data, pos + 22)[0]
+    else:  # _SM3_
+        if pos + 23 > len(data):
+            return ""
+        table_addr = struct.unpack_from('<Q', data, pos + 16)[0]
+        table_len = struct.unpack_from('<I', data, pos + 12)[0]
+
+    if table_addr <= 0 or table_addr + table_len > len(data):
+        return ""
+
+    # Walk SMBIOS structures looking for Type 1 (System Information)
+    offset = table_addr
+    while offset < table_addr + table_len - 4:
+        struct_type = data[offset]
+        struct_len = data[offset + 1]
+        if struct_len < 4 or struct_type == 127:
+            break
+
+        if struct_type == 1 and struct_len >= 8:
+            # Type 1: System Information
+            # Offset 4: Manufacturer (string index)
+            # Offset 5: Product Name (string index)
+            # Offset 6: Version (string index)
+            # Offset 7: Serial Number (string index)
+            serial_idx = data[offset + 7]
+            if serial_idx > 0:
+                # Strings start at offset + struct_len, null-terminated
+                strings_start = offset + struct_len
+                current = strings_start
+                idx = 1
+                while current < table_addr + table_len and idx <= serial_idx:
+                    end = data.find(b'\x00', current, min(current + 256, table_addr + table_len))
+                    if end == -1:
+                        break
+                    s = data[current:end].decode('ascii', errors='ignore').strip()
+                    if idx == serial_idx:
+                        return s
+                    current = end + 1
+                    idx += 1
+            break
+
+        # Move to next structure
+        offset += struct_len
+        # Skip string section
+        while offset < table_addr + table_len and data[offset:offset+2] != b'\x00\x00':
+            offset += 1
+        offset += 2  # skip double-null terminator
+
+    return ""
+
+
 def redact_sensitive_data(info: BIOSInfo) -> BIOSInfo:
+    """Redact sensitive data fields."""
+    if info.serial_number and info.serial_number not in ("", "REDACTED", "Unknown"):
+        info.serial_number = "REDACTED"
+    if info.uuid and info.uuid not in ("", "REDACTED", "Unknown"):
+        info.uuid = "REDACTED"
+    if info.windows_key and info.windows_key not in ("", "REDACTED"):
+        info.windows_key = "REDACTED"
     return info
 
 def save_json(info: BIOSInfo, output_path: Path) -> None:

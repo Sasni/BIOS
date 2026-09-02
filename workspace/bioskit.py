@@ -41,6 +41,7 @@ TOOL_MAP: dict[str, ToolDef] = {
     "patch":    ToolDef("me_clean_patch", "patches"),
     "nvram":    ToolDef("reset_nvram"),
     "nvar":     ToolDef("nvar_parser"),
+    "var":      ToolDef("var_edit"),
 }
 
 
@@ -139,6 +140,8 @@ Advanced Tools:
   find       BIOS Setting Finder - search BIOS setup variables from IFR text
   patch      Apply documented BIOS patch to a dump
   nvram      Reset corrupted NVRAM to factory defaults
+  nvar       List AMI Aptio V NVAR variable stores (read-only)
+  var        Read/write single NVAR variables (UVT-style, offline)
 
 Examples:
   bioskit parse bios.bin
@@ -150,6 +153,8 @@ Examples:
   bioskit find ifr_output.txt "secure boot, password"
   bioskit patch lenovo_legion_me_clean bios.bin bios_patched.bin
   bioskit nvram corrupted_bios.bin -o repaired_bios.bin
+  bioskit var dump.bin AMITSESetup:0x0(16)            # read setup var
+  bioskit var dump.bin Setup:0x40(1)=0x01 -o out.bin  # write, offline UVT-style
         """
     )
 
