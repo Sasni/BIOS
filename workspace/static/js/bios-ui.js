@@ -1160,7 +1160,133 @@ async function loadFix() {
     }
     html += `</div></div>`;
 
+    // ── Strefa 4: transplant regionu z donora ─────────────────────────────
+    html += `<div class="panel" style="margin-top:12px;border-color:var(--accent,#3a7ca5);">
+        <div class="panel-header">4 · Transplant regionu z donora (np. ME)</div>
+        <div class="panel-body text-sm">
+            <p style="margin:0 0 6px;">Przenosi wybrane regiony (ME, DESCRIPTOR…) z pliku donora
+            do bieżącego pliku. Typowy przypadek: BIOS z donora startuje, ale ME jest wyprany
+            (długie opóźnienie obrazu / brak numeru seryjnego) — przenosisz kompletny ME ze
+            starego dumpa. Wynik: <code>*_transplant.bin</code> + automatyczna kontrola BootGuard.</p>
+            <div id="transplant-box"><p class="text-sm text-muted" style="margin:0;">
+                ${relpath ? 'Wybierz plik donora…' : 'Najpierw wczytaj plik .bin (przeciągnij na lewy panel).'}</p></div>
+        </div>
+    </div>`;
+
+    if (relpath) {
+        loadTransplantBox(relpath);
+    }
+
     area.innerHTML = html;
+}
+
+async function loadTransplantBox(baseRel) {
+    const box = document.getElementById('transplant-box');
+    try {
+        const filesResp = await fetch('/api/files');
+        const files = await filesResp.json();
+        const options = files.filter(f => f.relpath !== baseRel && f.size_mb && Math.abs(f.size_mb - 16) < 0.01)
+            .map(f => `<option value="${escapeJs(f.relpath)}">${escapeHtml(f.relpath)}</option>`).join('');
+        if (!options) {
+            box.innerHTML = '<p class="text-sm text-muted" style="margin:0;">Brak innych plików .bin o zgodnym rozmiarze (16 MB) — wrzuć donora do listy plików.</p>';
+            return;
+        }
+        box.innerHTML = `
+            <div class="flex" style="gap:8px;align-items:center;margin-bottom:8px;">
+                <label class="text-sm">Donor:</label>
+                <select id="transplant-donor" style="flex:1;">${options}</select>
+                <button class="btn small" onclick="loadTransplantRegions()">Pokaż regiony</button>
+            </div>
+            <div id="transplant-regions"></div>`;
+    } catch (e) {
+        box.innerHTML = `<div class="error-state">${e.message}</div>`;
+    }
+}
+
+async function loadTransplantRegions() {
+    const baseRel = state.selectedFile ? (state.selectedFile.relpath || state.selectedFile.path) : null;
+    const donorRel = document.getElementById('transplant-donor').value;
+    const area = document.getElementById('transplant-regions');
+    if (!baseRel || !donorRel) return;
+    area.innerHTML = '<div class="loading">Analiza regionów…</div>';
+    try {
+        const [bResp, dResp] = await Promise.all([
+            fetch(`/api/fix/regions/${encodeRelpath(baseRel)}`),
+            fetch(`/api/fix/regions/${encodeRelpath(donorRel)}`)
+        ]);
+        const bData = await bResp.json();
+        const dData = await dResp.json();
+        if (bData.error || dData.error) {
+            area.innerHTML = `<div class="error-state">${bData.error || dData.error}</div>`;
+            return;
+        }
+        if (bData.file_size !== dData.file_size) {
+            area.innerHTML = `<div class="error-state">Rozmiar plików różny (${bData.file_size} vs ${dData.file_size} B) — transplant niemożliwy.</div>`;
+            return;
+        }
+        const meEnd = (bData.regions.find(r => r.name === 'ME') || {}).start === 0x1000
+            ? ((bData.regions.find(r => r.name === 'BIOS') || {}).start || null) : null;
+        const dMap = {};
+        for (const r of dData.regions) dMap[r.name] = r;
+        let rows = '';
+        for (const r of bData.regions) {
+            const d = dMap[r.name];
+            const same = d && d.start === r.start && d.size === r.size;
+            const susp = r.fill_ratio < 0.55 && r.name !== 'DESCRIPTOR';
+            const note = [];
+            if (r.notes) note.push(r.notes);
+            if (d && d.notes && d.notes !== r.notes) note.push('donor: ' + d.notes);
+            rows += `<tr>
+                <td><input type="checkbox" class="transplant-region" value="${r.name}" ${same && r.name !== 'DESCRIPTOR' ? 'checked' : ''} ${same ? '' : 'disabled'}></td>
+                <td><b>${r.name}</b>${susp ? ' <span style="color:#e8b739;">(podejrzany: '+Math.round(r.fill_ratio*100)+'% wypełnienia)</span>' : ''}</td>
+                <td style="font-family:monospace;">0x${r.start.toString(16).toUpperCase()}–0x${(r.start+r.size).toString(16).toUpperCase()}</td>
+                <td class="text-muted text-sm">${note.join(' · ') || ''}</td>
+                <td class="text-sm text-muted">${Math.round(r.fill_ratio*100)}% / ${d ? Math.round(d.fill_ratio*100)+'%' : '-'}</td>
+            </tr>`;
+        }
+        area.innerHTML = `
+            <table style="width:100%;font-size:12px;border-collapse:collapse;">
+                <tr style="text-align:left;"><th></th><th>Region</th><th>Zakres</th><th>Uwagi</th><th>Wypełnienie (base/donor)</th></tr>
+                ${rows}
+            </table>
+            <div class="flex" style="gap:8px;align-items:center;margin-top:8px;">
+                <button class="btn small" style="background:var(--accent,#3a7ca5);color:#fff;"
+                    onclick="runTransplant('${escapeJs(baseRel)}')">Transplantuj zaznaczone</button>
+                <span class="text-muted text-sm">ME domyślnie: 0x1000–0x300000 (FPT). Wynik: *_transplant.bin + kontrola BootGuard.</span>
+            </div>`;
+    } catch (e) {
+        area.innerHTML = `<div class="error-state">${e.message}</div>`;
+    }
+}
+
+async function runTransplant(baseRel) {
+    const donorRel = document.getElementById('transplant-donor').value;
+    const regions = Array.from(document.querySelectorAll('.transplant-region:checked')).map(c => c.value);
+    if (!regions.length) { setStatus('Nie zaznaczono żadnego regionu', true); return; }
+    if (!confirm(`Przenieś regiony: ${regions.join(', ')}\nZ: ${donorRel}\nDo: ${baseRel}\n\nPowstanie nowy plik *_transplant.bin. Kontynuować?`)) return;
+    setStatus('Transplant regionów…');
+    try {
+        const resp = await fetch('/api/fix/transplant', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({base: baseRel, donor: donorRel, regions: regions})
+        });
+        const result = await resp.json();
+        if (result.error) {
+            setStatus(`Transplant failed: ${result.error}`, true);
+            return;
+        }
+        const bg = result.bootguard_ibb_hash_match;
+        const bgTxt = bg === null || bg === undefined ? '' : (bg ? ' · BootGuard IBB: MATCH' : ' · BootGuard IBB: MISMATCH!');
+        setStatus(`Transplant OK: ${result.copied.map(c => c.name).join(', ')} → ${result.output_name}${bgTxt}`);
+        const infoResp = await fetch(`/api/file-info/${encodeRelpath(result.output_file)}`);
+        const info = await infoResp.json();
+        if (!info.error) {
+            state.selectedFile = info;
+        }
+    } catch (e) {
+        setStatus(`Transplant error: ${e.message}`, true);
+    }
 }
 
 async function applyFixPatch(patchName) {

@@ -402,6 +402,132 @@ def api_patch_apply():
         return jsonify({"error": str(e)}), 500
 
 
+# ── Region transplant (donor → base) ─────────────────────────────────────────
+
+def _region_map(data: bytes, me_end: int | None = None) -> list:
+    """Split a full SPI dump into regions. Heuristic:
+    DESCRIPTOR (0x0-0x1000), ME (0x1000..me_end), BIOS (rest).
+    me_end: explicit (from UI); default = 0x300000 when a $FPT lives in the
+    first 16 KB (standard 3 MB ME), else first 64K-aligned FV past 1 MB."""
+    size = len(data)
+    regions = [{"name": "DESCRIPTOR", "start": 0, "size": min(0x1000, size)}]
+    if me_end is None:
+        me_end = 0x300000 if b"$FPT" in data[0x1000:0x1000 + 0x4000] else None
+        if me_end is None:
+            pos = 0x100000
+            while pos + 0x30 <= size:
+                idx = data.find(b"_FVH", pos)
+                if idx < 0 or idx < 40:
+                    break
+                fv_start = idx - 40
+                if fv_start % 0x10000 == 0:
+                    me_end = fv_start
+                    break
+                pos = idx + 1
+    if me_end and 0x1000 < me_end < size:
+        regions.append({"name": "ME", "start": 0x1000, "size": me_end - 0x1000})
+        regions.append({"name": "BIOS", "start": me_end, "size": size - me_end})
+    else:
+        regions.append({"name": "BIOS", "start": 0x1000, "size": size - 0x1000})
+    for r in regions:
+        seg = data[r["start"]:r["start"] + r["size"]]
+        r["non_ff"] = sum(1 for b in seg if b != 0xFF)
+        r["fill_ratio"] = round(r["non_ff"] / max(len(seg), 1), 4)
+        notes = []
+        if r["name"] == "ME":
+            notes.append("FPT present" if b"$FPT" in seg else "no $FPT (empty/cleaned?)")
+        if r["name"] == "DESCRIPTOR" and seg[:0x10].hex() != "":
+            notes.append("FLVALSIG " + ("ok" if struct.unpack_from("<I", seg, 0x10)[0] == 0x0FF0A55A else "MISSING"))
+        r["notes"] = "; ".join(notes)
+    return regions
+
+
+@app.route("/api/fix/regions/<path:relpath>")
+def api_fix_regions(relpath):
+    relpath = _sanitize_relpath(relpath)
+    abs_path = _resolve_file(relpath)
+    if abs_path is None:
+        return jsonify({"error": f"File not found: {relpath}"}), 404
+    data = abs_path.read_bytes()
+    me_end = request.args.get("me_end", type=lambda v: int(v, 0))
+    return jsonify({"file": relpath, "file_size": len(data),
+                    "regions": _region_map(data, me_end)})
+
+
+@app.route("/api/fix/transplant", methods=["POST"])
+def api_fix_transplant():
+    """Copy selected regions from a donor dump into the base dump (new file)."""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No JSON body"}), 400
+    base_rel = data.get("base")
+    donor_rel = data.get("donor")
+    regions = data.get("regions") or []
+    me_end = data.get("me_end")
+    if isinstance(me_end, str):
+        me_end = int(me_end, 0)
+    if not base_rel or not donor_rel:
+        return jsonify({"error": "Missing base or donor"}), 400
+    if not regions:
+        return jsonify({"error": "No regions selected"}), 400
+
+    base_path = _resolve_file(_sanitize_relpath(base_rel))
+    donor_path = _resolve_file(_sanitize_relpath(donor_rel))
+    if base_path is None:
+        return jsonify({"error": f"Base not found: {base_rel}"}), 404
+    if donor_path is None:
+        return jsonify({"error": f"Donor not found: {donor_rel}"}), 404
+    if base_path.resolve() == donor_path.resolve():
+        return jsonify({"error": "Base and donor are the same file"}), 400
+
+    base_data = base_path.read_bytes()
+    donor_data = donor_path.read_bytes()
+    if len(base_data) != len(donor_data):
+        return jsonify({"error": f"Size mismatch: base {len(base_data):,} B vs donor {len(donor_data):,} B"}), 400
+
+    base_regions = {r["name"]: r for r in _region_map(base_data, me_end)}
+    donor_regions = {r["name"]: r for r in _region_map(donor_data, me_end)}
+
+    out = bytearray(base_data)
+    copied = []
+    for name in regions:
+        br = base_regions.get(name)
+        dr = donor_regions.get(name)
+        if not br or not dr:
+            return jsonify({"error": f"Region {name} not found in both files"}), 400
+        if br["start"] != dr["start"] or br["size"] != dr["size"]:
+            return jsonify({"error": (f"Region {name} layout differs: base "
+                                      f"0x{br['start']:X}+0x{br['size']:X} vs donor "
+                                      f"0x{dr['start']:X}+0x{dr['size']:X}")}), 400
+        out[br["start"]:br["start"] + br["size"]] = donor_data[dr["start"]:dr["start"] + dr["size"]]
+        copied.append({"name": name, "start": f"0x{br['start']:X}",
+                       "size": br["size"], "donor_sha_source": name})
+
+    stem = base_path.stem
+    out_name = f"{stem}_transplant.bin"
+    out_path = base_path.parent / out_name
+    out_path.write_bytes(bytes(out))
+
+    # BootGuard sanity on the result (if structures present)
+    bg_ok = None
+    try:
+        sys.path.insert(0, str(TOOLS_DIR))
+        from bootguard_parser import scan as bg_scan
+        rep = bg_scan(bytes(out))
+        bg_ok = rep.ibb_hash_match if rep.bpm else None
+    except Exception:
+        bg_ok = None
+
+    return jsonify({
+        "ok": True,
+        "output_file": str(out_path.relative_to(BIOS_DIR)),
+        "output_name": out_name,
+        "copied": copied,
+        "bootguard_ibb_hash_match": bg_ok,
+        "output_sha256": hashlib.sha256(bytes(out)).hexdigest(),
+    })
+
+
 @app.route("/api/db/stats")
 def api_db_stats():
     models_file = MODELS_DIR / "bios_models.json"
