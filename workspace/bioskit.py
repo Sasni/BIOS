@@ -37,6 +37,7 @@ TOOL_MAP: dict[str, ToolDef] = {
     "identify": ToolDef("identify_bios"),
     "db":       ToolDef("db_manager"),
     "fit":      ToolDef("fit_parser"),
+    "bootguard": ToolDef("bootguard_parser"),
     "find":     ToolDef("bios_finder"),
     "patch":    ToolDef("me_clean_patch", "patches"),
     "nvram":    ToolDef("reset_nvram"),

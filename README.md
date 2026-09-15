@@ -34,6 +34,7 @@ python app.py
 | `identify_bios` | Identify unknown BIOS dump against known models |
 | `db_manager` | Database management (list, stats, export, dedup) |
 | `fit_parser` | Parse Intel Firmware Interface Table (FIT) |
+| `bootguard_parser` | Parse Intel BootGuard: ACM header, Key Manifest, BPM (__ACBP__/__IBBS__), computed IBB hashes (SHA1/256/384/512/SM3), AMI v2 protected-range hash verification |
 | `bios_finder` | Search BIOS setup variables from IFR text |
 | `ami_parser` | Extract modules from AMI BIOS (AMIBIOSC format, LH5 decompression) |
 | `reset_nvram` | Reset corrupted NVRAM to factory defaults (AMI NVAR + Insyde VSS + EVSA) |
