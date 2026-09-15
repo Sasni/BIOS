@@ -294,7 +294,7 @@ def _to_dict(rep: BootGuardReport) -> dict:
                     "acm_svn": f"{a.acm_svn:04X}h", "ses_svn": f"{a.ses_svn:04X}h",
                     "entry_point": f"{a.entry_point:08X}h",
                     "key_size": f"{a.key_size:04X}h",
-                    "scratch_space_size": f"{a.scratch_space_size:04X}h"}
+                    "scratch_space_size": f"{a.scratch_size:04X}h"}
     if rep.km_offset >= 0:
         d["key_manifest"] = dict(rep.km, offset=f"{rep.km_offset:X}h")
     if rep.bpm:

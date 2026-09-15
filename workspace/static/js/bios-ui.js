@@ -768,6 +768,58 @@ function renderAnalysisIntoInfo(data) {
         html += `</div>`;
     }
 
+    // ── BootGuard (from bootguard_parser --json) ───────────────────────────
+    const bgData = data.bootguard;
+    if (bgData && (bgData.acm || bgData.bpm || (bgData.protected_ranges && bgData.protected_ranges.length))) {
+        html += `<details open class="mb-2"><summary class="text-sm" style="font-weight:600;cursor:pointer;padding:4px 0;">Boot Guard — ACM / BPM / Protected Ranges</summary>`;
+        html += `<div style="font-size:12px;padding:4px 8px;">`;
+
+        if (bgData.acm) {
+            const a = bgData.acm;
+            html += `<div style="margin-bottom:4px;"><b>ACM</b> <span style="font-family:monospace;">@${a.offset}</span> — Type ${a.module_type}/${a.module_subtype}, Date ${a.date}, AcmSvn ${a.acm_svn}, SeSvn ${a.ses_svn}</div>`;
+        }
+        if (bgData.bpm) {
+            const b = bgData.bpm;
+            const ibbs = b.ibbs;
+            let bgMatch = '';
+            if (typeof data.bootguard.ibb_hash_match === 'boolean') {
+                bgMatch = data.bootguard.ibb_hash_match
+                    ? ' <span style="color:#6c6;font-weight:600;">IBB hash MATCH</span>'
+                    : ' <span style="color:#e33;font-weight:600;">IBB hash MISMATCH</span>';
+            }
+            html += `<div style="margin-bottom:4px;"><b>BPM</b> <span style="font-family:monospace;">@${b.offset}</span> — ver ${b.version}, ACM SVN ${b.acmsvn}${bgMatch}</div>`;
+            if (ibbs && ibbs.segments) {
+                html += `<div style="max-height:150px;overflow-y:auto;">`;
+                for (const s of ibbs.segments) {
+                    html += `<div class="flex" style="justify-content:space-between;padding:1px 8px;border-top:1px solid var(--border);font-family:monospace;font-size:11px;">
+                        <span>IBB seg</span><span>${s.address}</span><span class="text-muted">${s.size}</span></div>`;
+                }
+                html += `</div>`;
+            }
+            if (data.bootguard.ibb_hashes) {
+                html += `<details style="margin-top:4px;"><summary class="text-muted" style="cursor:pointer;">Computed IBB hashes</summary>`;
+                for (const [algo, h] of Object.entries(data.bootguard.ibb_hashes)) {
+                    html += `<div style="font-family:monospace;font-size:10px;padding:1px 8px;word-break:break-all;"><b>${algo}</b> ${h}</div>`;
+                }
+                html += `</details>`;
+            }
+        }
+        if (bgData.protected_ranges && bgData.protected_ranges.length) {
+            html += `<div style="margin-top:6px;"><b>AMI Protected Ranges</b></div>`;
+            for (const r of bgData.protected_ranges) {
+                let badge = '';
+                if (r.size && r.hash_computed) {
+                    badge = r.match
+                        ? ' <span style="color:#6c6;font-weight:600;">MATCH</span>'
+                        : ' <span style="color:#e33;font-weight:600;">MISMATCH</span>';
+                }
+                html += `<div class="flex" style="justify-content:space-between;padding:1px 8px;border-top:1px solid var(--border);font-family:monospace;font-size:11px;">
+                    <span>${r.address}</span><span>${r.size}</span><span>${badge}</span></div>`;
+            }
+        }
+        html += `</div></details>`;
+    }
+
     // ── NVAR Variables (from nvar_parser --json) ───────────────────────────
     const nvar = data.nvar;
     if (nvar && nvar.found && nvar.stores && nvar.stores.length) {

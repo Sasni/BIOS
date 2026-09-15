@@ -239,6 +239,15 @@ def api_analyze(relpath):
         except (json.JSONDecodeError, Exception):
             sb_data = {"text": sb_raw["stdout"]}
 
+    # ── bootguard_parser.py: ACM/KM/BPM/protected ranges ──
+    bg_data = None
+    bg_raw = _run_tool("bootguard_parser.py", "--json", str(abs_path))
+    if bg_raw.get("stdout"):
+        try:
+            bg_data = json.loads(bg_raw["stdout"])
+        except (json.JSONDecodeError, Exception):
+            bg_data = {"text": bg_raw["stdout"]}
+
     return jsonify({
         "file": relpath,
         "sha256": _sha256(str(abs_path)),
@@ -249,6 +258,7 @@ def api_analyze(relpath):
             "exit_code": parse_result.get("exit_code", -1),
         },
         "fit": fit_data,
+        "bootguard": bg_data,
         "nvram": nvram_data,
         "nvar": nvar_data,
         "fd_audit": fd_data,
